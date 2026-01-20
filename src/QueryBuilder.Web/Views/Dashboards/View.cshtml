@@ -6,7 +6,7 @@
 }
 
 <div class="dashboard-page dashboard-view">
-    <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="dashboard-titlebar">
         <div>
             <h1 class="h3 mb-0">@Model.Dashboard.Name</h1>
             <div class="text-muted">@Model.Dashboard.Description</div>
@@ -17,7 +17,26 @@
         }
     </div>
 
-    <div class="grid-stack dashboard-grid"></div>
+    @if (Model.Widgets.Count == 0)
+    {
+        <div class="dashboard-empty">
+            <div class="dashboard-empty-card">
+                <div class="dashboard-empty-icon">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                </div>
+                <div class="dashboard-empty-title">This dashboard is empty</div>
+                <div class="dashboard-empty-text">Add a visualization to start telling your story.</div>
+                @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
+                {
+                    <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Dashboard.Id">Add Widgets</a>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="grid-stack dashboard-grid"></div>
+    }
 </div>
 
 @section Scripts {
@@ -126,8 +145,10 @@
                     rows: widget.rows,
                     xColumn: widget.xColumn,
                     yColumn: widget.yColumn,
+                    yColumns: widget.yColumns,
                     labelColumn: widget.labelColumn,
-                    valueColumn: widget.valueColumn
+                    valueColumn: widget.valueColumn,
+                    showLegend: widget.showLegend
                 });
             }
 

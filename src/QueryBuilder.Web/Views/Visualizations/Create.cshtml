@@ -16,7 +16,7 @@
         </div>
 
         <div class="viz-body">
-            <form method="post" class="viz-config">
+            <form method="post" class="viz-config viz-card">
                 <input type="hidden" asp-for="Id" />
                 <input type="hidden" asp-for="QueryId" />
 
@@ -26,7 +26,7 @@
                     <span asp-validation-for="Name" class="text-danger"></span>
                 </div>
 
-                <ul class="nav nav-tabs mb-3" role="tablist">
+                <ul class="nav nav-tabs viz-tabs mb-3" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#vizGeneral" type="button" role="tab">General</button>
                     </li>
@@ -112,13 +112,13 @@
                     </div>
                 </div>
 
-                <div class="d-flex gap-2 mb-4">
+                <div class="viz-actions d-flex gap-2 mb-4">
                     <button class="btn btn-outline-primary" type="submit" name="SubmitAction" value="preview">Preview</button>
-                    <button class="btn btn-success" type="submit" name="SubmitAction" value="save">Save</button>
+                    <button class="btn btn-primary" type="submit" name="SubmitAction" value="save">Save</button>
                 </div>
             </form>
 
-            <div class="viz-preview">
+            <div class="viz-preview viz-card">
                 @if (Model.Result != null && Model.Result.Success)
                 {
                     <div class="alert alert-info">Preview based on current query result.</div>

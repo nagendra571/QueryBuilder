@@ -1,8 +1,102 @@
-﻿@{
+@{
     ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-5">QueryBuilder MVP</h1>
-    <p class="lead">A Redash-style platform for querying data, visualizing results, and building dashboards.</p>
+<div class="home-page">
+    <section class="home-hero">
+        <div class="home-hero-content">
+            <span class="home-badge">Enterprise Analytics Workspace</span>
+            <h1 class="home-title">QueryBuilder</h1>
+            <p class="home-subtitle">
+                A modern, collaborative space to query data, build visualizations, and assemble dashboards your team can trust.
+            </p>
+            <div class="home-cta">
+                <a class="btn btn-primary" asp-controller="Queries" asp-action="Index">Explore Queries</a>
+                <a class="btn btn-outline-primary" asp-controller="Dashboards" asp-action="Index">View Dashboards</a>
+            </div>
+        </div>
+        <div class="home-hero-visual">
+            <div class="home-mockup">
+                <div class="home-mockup-top">
+                    <span class="home-dot"></span>
+                    <span class="home-dot"></span>
+                    <span class="home-dot"></span>
+                </div>
+                <div class="home-mockup-body">
+                    <div class="home-mockup-panel">
+                        <div class="home-mockup-title">Query Editor</div>
+                        <div class="home-mockup-line"></div>
+                        <div class="home-mockup-line short"></div>
+                        <div class="home-mockup-line"></div>
+                    </div>
+                    <div class="home-mockup-panel">
+                        <div class="home-mockup-title">Dashboard Tiles</div>
+                        <div class="home-mockup-grid">
+                            <div></div><div></div><div></div><div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="home-hero-glow"></div>
+        </div>
+    </section>
+
+    <section class="home-steps">
+        <h2 class="home-section-title">How it works</h2>
+        <div class="home-step-grid">
+            <div class="home-step-card">
+                <div class="home-step-icon"><i class="bi bi-plug"></i></div>
+                <div class="home-step-title">Connect</div>
+                <div class="home-step-text">Register data sources with secure credentials and role-based access.</div>
+            </div>
+            <div class="home-step-card">
+                <div class="home-step-icon"><i class="bi bi-code-slash"></i></div>
+                <div class="home-step-title">Query</div>
+                <div class="home-step-text">Write SQL with a focused editor and schema browser to speed up discovery.</div>
+            </div>
+            <div class="home-step-card">
+                <div class="home-step-icon"><i class="bi bi-bar-chart-line"></i></div>
+                <div class="home-step-title">Visualize</div>
+                <div class="home-step-text">Build rich charts and tables, then save reusable visualizations.</div>
+            </div>
+            <div class="home-step-card">
+                <div class="home-step-icon"><i class="bi bi-grid-1x2"></i></div>
+                <div class="home-step-title">Dashboard</div>
+                <div class="home-step-text">Compose dashboards with drag-and-drop tiles and share with your team.</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="home-features">
+        <h2 class="home-section-title">Built for enterprise analytics</h2>
+        <div class="home-feature-grid">
+            <div class="home-feature-card">
+                <div class="home-feature-title">Governed access</div>
+                <div class="home-feature-text">Admin, Editor, and Viewer roles ensure everyone sees the right data.</div>
+            </div>
+            <div class="home-feature-card">
+                <div class="home-feature-title">Reusable insights</div>
+                <div class="home-feature-text">Save queries and visualizations as building blocks for teams.</div>
+            </div>
+            <div class="home-feature-card">
+                <div class="home-feature-title">Fast iteration</div>
+                <div class="home-feature-text">Preview results instantly and refine charts without leaving the page.</div>
+            </div>
+            <div class="home-feature-card">
+                <div class="home-feature-title">Share with confidence</div>
+                <div class="home-feature-text">Share dashboards to users or groups with clear permissions.</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="home-callout">
+        <div>
+            <div class="home-callout-title">Ready to build your analytics workspace?</div>
+            <div class="home-callout-text">Start with a query, then turn it into a dashboard your stakeholders can rely on.</div>
+        </div>
+        <div class="home-callout-actions">
+            <a class="btn btn-primary" asp-controller="Queries" asp-action="Create">New Query</a>
+            <a class="btn btn-outline-primary" asp-controller="Dashboards" asp-action="Index">Browse Dashboards</a>
+        </div>
+    </section>
 </div>

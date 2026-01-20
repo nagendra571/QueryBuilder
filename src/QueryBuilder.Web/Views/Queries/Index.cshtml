@@ -17,9 +17,23 @@
     <div class="alert alert-success">@statusMessage</div>
 }
 
-<div class="card">
-    <div class="table-responsive">
-        <table class="table mb-0">
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <div class="empty-state-icon"><i class="bi bi-code-slash"></i></div>
+        <div class="empty-state-title">No queries yet</div>
+        <div class="empty-state-text">Create a query to explore your data.</div>
+        @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
+        {
+            <a class="btn btn-primary" asp-action="Create">Create Query</a>
+        }
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table mb-0">
             <thead>
             <tr>
                 <th>Name</th>
@@ -45,6 +59,7 @@
                 </tr>
             }
             </tbody>
-        </table>
+            </table>
+        </div>
     </div>
-</div>
+}

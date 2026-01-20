@@ -7,12 +7,15 @@
     var columnsJson = JsonSerializer.Serialize(Model.Result.Columns);
 }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
+<div class="viz-details-header d-flex align-items-center justify-content-between mb-3">
     <div>
         <h1 class="h3 mb-0">@Model.Visualization.Name</h1>
         <div class="text-muted">Query: @Model.QueryName</div>
     </div>
-    <a class="btn btn-outline-secondary" asp-controller="Queries" asp-action="Edit" asp-route-id="@Model.Visualization.QueryId">Back to Query</a>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-primary" asp-controller="Visualizations" asp-action="Edit" asp-route-id="@Model.Visualization.Id">Edit</a>
+        <a class="btn btn-outline-secondary" asp-controller="Queries" asp-action="Edit" asp-route-id="@Model.Visualization.QueryId">Back to Query</a>
+    </div>
 </div>
 
 @if (!Model.Result.Success)
@@ -23,7 +26,7 @@ else
 {
     @if (Model.Visualization.Type == QueryBuilder.Domain.Entities.VisualizationType.Table)
     {
-        <div class="card">
+        <div class="card viz-card">
             <div class="table-responsive">
                 <table class="table table-sm mb-0">
                     <thead>
@@ -60,7 +63,7 @@ else
     }
     else
     {
-        <div class="card mb-3">
+        <div class="card viz-card mb-3">
             <div class="card-body">
                 <canvas id="vizChart" height="120"></canvas>
             </div>
