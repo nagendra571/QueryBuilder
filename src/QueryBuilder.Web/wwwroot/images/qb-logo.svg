@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="48" viewBox="0 0 220 48" fill="none">
+  <rect x="2" y="2" width="44" height="44" rx="12" fill="#E0ECFF"/>
+  <path d="M26 14C19.3726 14 14 19.3726 14 26C14 32.6274 19.3726 38 26 38C32.6274 38 38 32.6274 38 26C38 19.3726 32.6274 14 26 14ZM26 36.2C20.329 36.2 15.8 31.671 15.8 26C15.8 20.329 20.329 15.8 26 15.8C31.671 15.8 36.2 20.329 36.2 26C36.2 31.671 31.671 36.2 26 36.2Z" fill="#2563EB"/>
+  <path d="M33.8 34.6L38 38.8" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M21 26H31" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M26 21V31" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="58" y="31" font-family="Inter, Segoe UI, sans-serif" font-size="20" font-weight="700" fill="#0F172A">QueryBuilder</text>
+  <text x="58" y="44" font-family="Inter, Segoe UI, sans-serif" font-size="10" font-weight="600" letter-spacing="0.18em" fill="#64748B">ANALYTICS</text>
+</svg>

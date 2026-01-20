@@ -10,74 +10,77 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/QueryBuilder.Web.styles.css" asp-append-version="true" />
 </head>
-<body>
-    <header class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
-        <div class="container-fluid">
+<body class="app-shell">
+    @{
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+    }
+    <header class="app-header">
+        <div class="app-header-left">
             <button class="btn btn-outline-secondary d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar">
                 <span class="bi bi-list"></span>
             </button>
-            <a class="navbar-brand fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">QueryBuilder</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav" aria-controls="topNav"
-                    aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse justify-content-end" id="topNav">
-                <partial name="_LoginPartial" />
-            </div>
+            <a class="app-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <img src="~/images/qb-logo.svg" alt="QueryBuilder" class="app-logo">
+            </a>
+        </div>
+        <div class="app-header-center">
+            <div class="app-page-title">@ViewData["Title"]</div>
+        </div>
+        <div class="app-header-right">
+            <partial name="_LoginPartial" />
         </div>
     </header>
-    <div class="container-fluid">
-        <div class="row">
-            <nav class="col-md-2 d-none d-md-block bg-light sidebar border-end">
-                <div class="position-sticky pt-3 sidebar-inner">
-                    <ul class="nav flex-column">
+    <div class="app-body">
+        <aside class="app-sidebar sidebar">
+            <div class="sidebar-inner">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link @(currentController == "Queries" ? "active" : "")" asp-area="" asp-controller="Queries" asp-action="Index">
+                            <span class="sidebar-icon bi bi-code-square"></span>
+                            <span class="sidebar-label">Queries</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(currentController == "Dashboards" ? "active" : "")" asp-area="" asp-controller="Dashboards" asp-action="Index">
+                            <span class="sidebar-icon bi bi-grid-1x2"></span>
+                            <span class="sidebar-label">Dashboards</span>
+                        </a>
+                    </li>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <li class="nav-item mt-3 text-uppercase small text-muted ps-3">Admin</li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Queries" asp-action="Index">
-                                <span class="sidebar-icon bi bi-code-square"></span>
-                                <span class="sidebar-label">Queries</span>
+                            <a class="nav-link @(currentController == "DataSources" ? "active" : "")" asp-area="" asp-controller="DataSources" asp-action="Index">
+                                <span class="sidebar-icon bi bi-database"></span>
+                                <span class="sidebar-label">Data Sources</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Dashboards" asp-action="Index">
-                                <span class="sidebar-icon bi bi-grid-1x2"></span>
-                                <span class="sidebar-label">Dashboards</span>
+                            <a class="nav-link @(currentController == "Admin" && currentAction == "Users" ? "active" : "")" asp-area="" asp-controller="Admin" asp-action="Users">
+                                <span class="sidebar-icon bi bi-people"></span>
+                                <span class="sidebar-label">Users</span>
                             </a>
                         </li>
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <li class="nav-item mt-2 text-uppercase small text-muted ps-3">Admin</li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="DataSources" asp-action="Index">
-                                    <span class="sidebar-icon bi bi-database"></span>
-                                    <span class="sidebar-label">Data Sources</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Users">
-                                    <span class="sidebar-icon bi bi-people"></span>
-                                    <span class="sidebar-label">Users</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Groups">
-                                    <span class="sidebar-icon bi bi-people-fill"></span>
-                                    <span class="sidebar-label">Groups</span>
-                                </a>
-                            </li>
-                        }
-                    </ul>
-                    <div class="sidebar-footer mt-auto">
-                        <button class="btn btn-light w-100 sidebar-toggle" type="button" id="sidebarToggle">
-                            <span class="sidebar-toggle-icon bi bi-chevron-left"></span>
-                            <span class="sidebar-label">Collapse</span>
-                        </button>
-                    </div>
+                        <li class="nav-item">
+                            <a class="nav-link @(currentController == "Admin" && currentAction == "Groups" ? "active" : "")" asp-area="" asp-controller="Admin" asp-action="Groups">
+                                <span class="sidebar-icon bi bi-people-fill"></span>
+                                <span class="sidebar-label">Groups</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+                <div class="sidebar-footer mt-auto">
+                    <button class="btn btn-light w-100 sidebar-toggle" type="button" id="sidebarToggle">
+                        <span class="sidebar-toggle-icon bi bi-chevron-left"></span>
+                        <span class="sidebar-label">Collapse</span>
+                    </button>
                 </div>
-            </nav>
-            <main class="col-md-10 ms-sm-auto px-md-4 py-4 main-content" role="main">
-                @RenderBody()
-            </main>
-        </div>
+            </div>
+        </aside>
+        <main class="app-content main-content" role="main">
+            @RenderBody()
+        </main>
     </div>
 
     <div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
@@ -132,10 +135,8 @@
         <div data-toast-message="@toastMessage" data-toast-level="info" id="toastSeed"></div>
     }
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - QueryBuilder
-        </div>
+    <footer class="app-footer">
+        &copy; 2026 - QueryBuilder
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

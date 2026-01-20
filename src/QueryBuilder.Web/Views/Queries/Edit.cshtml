@@ -38,9 +38,29 @@
 </div>
 
 <div class="mt-4">
-    <partial name="_ShareSection" model="Model.ShareSection" />
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <h2 class="h5 mb-0">Sharing</h2>
+        <button class="btn btn-sm btn-outline-secondary share-toggle" type="button" data-target="#sharePanel" aria-expanded="false">
+            <i class="bi bi-people"></i>
+            <span>Manage</span>
+        </button>
+    </div>
+    <div id="sharePanel" class="share-panel d-none">
+        <partial name="_ShareSection" model="Model.ShareSection" />
+    </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const toggle = document.querySelector('.share-toggle');
+            const panel = document.querySelector('#sharePanel');
+            if (!toggle || !panel) return;
+            toggle.addEventListener('click', () => {
+                const isHidden = panel.classList.toggle('d-none');
+                toggle.setAttribute('aria-expanded', (!isHidden).toString());
+            });
+        })();
+    </script>
 }

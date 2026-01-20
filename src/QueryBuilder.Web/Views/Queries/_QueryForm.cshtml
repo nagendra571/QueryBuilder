@@ -6,6 +6,7 @@
 
 <div class="query-header">
     <div class="query-title">
+        <div class="query-section-label">Query details</div>
         <input asp-for="Name" class="form-control form-control-lg query-title-input" placeholder="Untitled query" />
         <span asp-validation-for="Name" class="text-danger"></span>
         <input asp-for="Description" class="form-control query-description-input" placeholder="Add a description" />
@@ -14,7 +15,7 @@
     <div class="query-toolbar">
         <span class="badge text-bg-light border query-status">@statusText</span>
         <div class="btn-group">
-            <button class="btn btn-primary" type="submit" name="SubmitAction" value="run">Execute</button>
+            <button class="btn btn-primary" type="submit" name="SubmitAction" value="run">Run Query</button>
             <button class="btn btn-outline-secondary" type="submit" name="SubmitAction" value="save">Save</button>
         </div>
         <div class="form-check form-switch query-toggle">
@@ -28,6 +29,7 @@
 <div class="query-editor-body" id="queryEditorBody">
     <div class="query-layout">
         <div class="query-schema-panel">
+            <div class="query-section-label">Schema browser</div>
             <div class="mb-3">
                 <label asp-for="DataSourceId" class="form-label"></label>
                 <select asp-for="DataSourceId" class="form-select" asp-items="ViewBag.DataSources" id="dataSourceSelect"></select>
@@ -43,6 +45,7 @@
         </div>
 
         <div class="query-editor-panel">
+            <div class="query-section-label">SQL editor</div>
             <div class="mb-3">
                 <label asp-for="SqlText" class="form-label"></label>
                 <div class="sql-editor">
@@ -87,14 +90,14 @@
                     <button class="btn btn-sm btn-outline-secondary" type="button" id="downloadCsvBtn">Download CSV</button>
                     @if (Model.Id.HasValue)
                     {
-                        <a class="btn btn-sm btn-outline-primary" asp-controller="Visualizations" asp-action="Create" asp-route-queryId="@Model.Id">+ New Visualization</a>
+                        <a class="btn btn-sm btn-primary" asp-controller="Visualizations" asp-action="Create" asp-route-queryId="@Model.Id">+ New Visualization</a>
                     }
                 </div>
             </div>
             <div class="card-body tab-content">
                 <div class="tab-pane fade show active" id="tabTablePane" role="tabpanel">
                     <div class="table-responsive">
-                        <table class="table table-sm mb-0">
+                        <table class="table table-sm table-striped mb-0">
                             <thead>
                             <tr>
                                 @foreach (var column in Model.Result.Columns)

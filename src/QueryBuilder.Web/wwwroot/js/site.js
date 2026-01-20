@@ -30,7 +30,7 @@
     applyState(collapsed);
   });
 
-  document.querySelectorAll(".sidebar .nav-link").forEach((link) => {
+  document.querySelectorAll(".sidebar .nav-link, .app-sidebar .nav-link").forEach((link) => {
     const label = link.querySelector(".sidebar-label");
     if (label && !link.title) {
       link.title = label.textContent || "";

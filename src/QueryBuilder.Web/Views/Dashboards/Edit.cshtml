@@ -36,7 +36,9 @@
                             }
                         </select>
                     </div>
-                    <button class="btn btn-primary w-100" type="button" id="addWidgetBtn">Add Widget</button>
+                    <button class="btn btn-primary w-100" type="button" id="addWidgetBtn">
+                        <i class="bi bi-plus-circle me-2"></i>Add Widget
+                    </button>
                 </div>
             </div>
 
@@ -50,7 +52,9 @@
                         <label asp-for="Description" class="form-label"></label>
                         <textarea asp-for="Description" class="form-control" rows="3"></textarea>
                     </div>
-                    <button class="btn btn-outline-primary w-100" type="button" id="saveLayoutBtn">Save Layout</button>
+                    <button class="btn btn-outline-primary w-100" type="button" id="saveLayoutBtn">
+                        <i class="bi bi-check2-circle me-2"></i>Save Layout
+                    </button>
                 </div>
             </div>
 
@@ -59,6 +63,10 @@
             </div>
         </div>
         <div class="col-lg-9">
+            <div class="dashboard-grid-header">
+                <div class="text-muted small">Edit mode · Drag tiles to rearrange and resize.</div>
+                <a class="btn btn-sm btn-outline-secondary" asp-action="View" asp-route-id="@Model.Id">Preview</a>
+            </div>
             <div class="grid-stack dashboard-grid"></div>
         </div>
     </div>
