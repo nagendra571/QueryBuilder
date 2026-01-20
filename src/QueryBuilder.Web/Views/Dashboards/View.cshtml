@@ -40,6 +40,7 @@
                 visualizationId: @widget.Visualization.Id,
                 visualizationName: "@widget.Visualization.Name",
                 visualizationType: "@widget.Visualization.Type",
+                queryId: @widget.Visualization.QueryId,
                 columns: @Html.Raw(colsJson),
                 rows: @Html.Raw(rowsJson),
                 xColumn: "@(widget.Config.XColumn ?? string.Empty)",
@@ -62,11 +63,28 @@
             const title = document.createElement('div');
             title.className = 'dashboard-widget-title';
             title.textContent = widget.visualizationName;
+            const actions = document.createElement('div');
+            actions.className = 'dashboard-widget-actions';
+            const openViz = document.createElement('a');
+            openViz.className = 'dashboard-widget-action';
+            openViz.title = 'Open visualization';
+            openViz.href = `/Visualizations/Details/${widget.visualizationId}`;
+            openViz.innerHTML = '<i class="bi bi-box-arrow-up-right"></i>';
+            actions.appendChild(openViz);
+            if (widget.queryId) {
+                const openQuery = document.createElement('a');
+                openQuery.className = 'dashboard-widget-action';
+                openQuery.title = 'Open query';
+                openQuery.href = `/Queries/Details/${widget.queryId}`;
+                openQuery.innerHTML = '<i class="bi bi-file-earmark-text"></i>';
+                actions.appendChild(openQuery);
+            }
             const badge = document.createElement('span');
             badge.className = 'badge bg-light text-dark border';
             badge.textContent = widget.visualizationType;
+            actions.appendChild(badge);
             header.appendChild(title);
-            header.appendChild(badge);
+            header.appendChild(actions);
 
             const body = document.createElement('div');
             body.className = 'dashboard-widget-body';

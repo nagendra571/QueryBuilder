@@ -1,34 +1,59 @@
 @model QueryBuilder.Web.Models.Queries.QueryEditViewModel
 
-<div class="mb-3">
-    <label asp-for="Name" class="form-label"></label>
-    <input asp-for="Name" class="form-control" />
-    <span asp-validation-for="Name" class="text-danger"></span>
+@{
+    var statusText = Model.Id.HasValue ? "Saved" : "Draft";
+}
+
+<div class="query-header">
+    <div class="query-title">
+        <input asp-for="Name" class="form-control form-control-lg query-title-input" placeholder="Untitled query" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+        <input asp-for="Description" class="form-control query-description-input" placeholder="Add a description" />
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+    <div class="query-toolbar">
+        <span class="badge text-bg-light border query-status">@statusText</span>
+        <div class="btn-group">
+            <button class="btn btn-primary" type="submit" name="SubmitAction" value="run">Execute</button>
+            <button class="btn btn-outline-secondary" type="submit" name="SubmitAction" value="save">Save</button>
+        </div>
+        <div class="form-check form-switch query-toggle">
+            <input class="form-check-input" type="checkbox" id="showDataOnlyToggle" />
+            <label class="form-check-label" for="showDataOnlyToggle">Show data only</label>
+        </div>
+        <a class="btn btn-link query-back" asp-action="Index">Back</a>
+    </div>
 </div>
 
-<div class="mb-3">
-    <label asp-for="Description" class="form-label"></label>
-    <textarea asp-for="Description" class="form-control" rows="2"></textarea>
-    <span asp-validation-for="Description" class="text-danger"></span>
-</div>
+<div class="query-editor-body" id="queryEditorBody">
+    <div class="query-layout">
+        <div class="query-schema-panel">
+            <div class="mb-3">
+                <label asp-for="DataSourceId" class="form-label"></label>
+                <select asp-for="DataSourceId" class="form-select" asp-items="ViewBag.DataSources" id="dataSourceSelect"></select>
+                <span asp-validation-for="DataSourceId" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="schemaSearch">Schema</label>
+                <input class="form-control" id="schemaSearch" placeholder="Search tables..." />
+            </div>
+            <div class="query-schema-list list-group" id="schemaList">
+                <div class="list-group-item text-muted">Select a data source to load tables.</div>
+            </div>
+        </div>
 
-<div class="mb-3">
-    <label asp-for="DataSourceId" class="form-label"></label>
-    <select asp-for="DataSourceId" class="form-select" asp-items="ViewBag.DataSources"></select>
-    <span asp-validation-for="DataSourceId" class="text-danger"></span>
-</div>
-
-<div class="mb-3">
-    <label asp-for="SqlText" class="form-label"></label>
-    <textarea asp-for="SqlText" class="form-control font-monospace" rows="8"></textarea>
-    <span asp-validation-for="SqlText" class="text-danger"></span>
-    <div class="form-text">MVP supports SELECT queries only.</div>
-</div>
-
-<div class="d-flex gap-2 mb-4">
-    <button class="btn btn-outline-primary" type="submit" name="SubmitAction" value="run">Run</button>
-    <button class="btn btn-success" type="submit" name="SubmitAction" value="save">Save</button>
-    <a class="btn btn-link" asp-action="Index">Back</a>
+        <div class="query-editor-panel">
+            <div class="mb-3">
+                <label asp-for="SqlText" class="form-label"></label>
+                <div class="sql-editor">
+                    <pre class="sql-gutter" id="sqlLineNumbers">1</pre>
+                    <textarea asp-for="SqlText" class="form-control font-monospace sql-editor-input" rows="11" placeholder="Write your SQL here..."></textarea>
+                </div>
+                <span asp-validation-for="SqlText" class="text-danger"></span>
+                <div class="form-text">MVP supports SELECT queries only.</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @if (Model.Result != null)
@@ -48,50 +73,388 @@
 
     if (Model.Result.Success)
     {
-        <div class="d-flex align-items-center justify-content-between mb-2">
-            <h2 class="h5 mb-0">Results</h2>
-            @if (Model.Id.HasValue)
-            {
-                <a class="btn btn-sm btn-outline-primary" asp-controller="Visualizations" asp-action="Create" asp-route-queryId="@Model.Id">New Visualization</a>
-            }
-            else
-            {
-                <button class="btn btn-sm btn-outline-secondary" type="button" disabled>New Visualization</button>
-            }
-        </div>
-        <div class="card">
-            <div class="table-responsive">
-                <table class="table table-sm mb-0">
-                    <thead>
-                    <tr>
-                        @foreach (var column in Model.Result.Columns)
-                        {
-                            <th>@column</th>
-                        }
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @if (Model.Result.Rows.Count == 0)
+        <div class="results-card card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <ul class="nav nav-tabs card-header-tabs" id="resultsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tab-table" data-bs-toggle="tab" data-bs-target="#tabTablePane" type="button" role="tab">Table</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-viz" data-bs-toggle="tab" data-bs-target="#tabVizPane" type="button" role="tab">Visualizations</button>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="downloadCsvBtn">Download CSV</button>
+                    @if (Model.Id.HasValue)
                     {
-                        <tr>
-                            <td colspan="@Model.Result.Columns.Count" class="text-muted">No rows returned.</td>
-                        </tr>
+                        <a class="btn btn-sm btn-outline-primary" asp-controller="Visualizations" asp-action="Create" asp-route-queryId="@Model.Id">+ New Visualization</a>
+                    }
+                </div>
+            </div>
+            <div class="card-body tab-content">
+                <div class="tab-pane fade show active" id="tabTablePane" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                            <tr>
+                                @foreach (var column in Model.Result.Columns)
+                                {
+                                    <th>@column</th>
+                                }
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @if (Model.Result.Rows.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="@Model.Result.Columns.Count" class="text-muted">No rows returned.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var row in Model.Result.Rows)
+                                {
+                                    <tr>
+                                        @foreach (var cell in row)
+                                        {
+                                            <td>@cell</td>
+                                        }
+                                    </tr>
+                                }
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="tabVizPane" role="tabpanel">
+                    @if (Model.Visualizations.Count == 0)
+                    {
+                        <div class="text-muted">No visualizations yet. Create one to see it here.</div>
                     }
                     else
                     {
-                        foreach (var row in Model.Result.Rows)
-                        {
-                            <tr>
-                                @foreach (var cell in row)
-                                {
-                                    <td>@cell</td>
-                                }
-                            </tr>
-                        }
+                        <div class="list-group">
+                            @foreach (var viz in Model.Visualizations)
+                            {
+                                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                   asp-controller="Visualizations"
+                                   asp-action="Details"
+                                   asp-route-id="@viz.Id">
+                                    <span>@viz.Name</span>
+                                    <span class="badge text-bg-secondary">@viz.Type</span>
+                                </a>
+                            }
+                        </div>
                     }
-                    </tbody>
-                </table>
+                </div>
             </div>
         </div>
     }
 }
+
+<script>
+    (() => {
+        const toggle = document.getElementById('showDataOnlyToggle');
+        const editor = document.getElementById('queryEditorBody');
+        if (!toggle || !editor) return;
+        toggle.addEventListener('change', () => {
+            editor.classList.toggle('d-none', toggle.checked);
+        });
+    })();
+</script>
+
+<script>
+    (() => {
+        const dataSourceSelect = document.getElementById('dataSourceSelect');
+        const schemaList = document.getElementById('schemaList');
+        const schemaSearch = document.getElementById('schemaSearch');
+        const sqlEditor = document.getElementById('SqlText');
+        if (!dataSourceSelect || !schemaList || !schemaSearch) return;
+
+        let tables = [];
+        const schemaState = window.queryBuilderSchema = window.queryBuilderSchema || { tables: [], columnsByTable: {} };
+
+        const insertText = (text) => {
+            const cm = window.queryBuilderEditor;
+            if (cm) {
+                const range = cm.state.selection.main;
+                cm.dispatch({
+                    changes: { from: range.from, to: range.to, insert: text }
+                });
+                cm.focus();
+                return;
+            }
+
+            if (!sqlEditor) return;
+            const start = sqlEditor.selectionStart ?? sqlEditor.value.length;
+            const end = sqlEditor.selectionEnd ?? sqlEditor.value.length;
+            const value = sqlEditor.value;
+            sqlEditor.value = value.slice(0, start) + text + value.slice(end);
+            sqlEditor.focus();
+            sqlEditor.selectionStart = sqlEditor.selectionEnd = start + text.length;
+        };
+
+        const renderList = (items) => {
+            schemaList.innerHTML = '';
+            if (items.length === 0) {
+                schemaList.innerHTML = '<div class="list-group-item text-muted">No tables found.</div>';
+                return;
+            }
+
+            items.forEach((item) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'schema-table';
+
+                const header = document.createElement('button');
+                header.type = 'button';
+                header.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2';
+                header.innerHTML = `<span class="schema-caret">&gt;</span><span class="schema-name">${item.schema}.${item.name}</span>`;
+                header.addEventListener('click', async () => {
+                    const isExpanded = wrapper.classList.toggle('expanded');
+                    const caret = header.querySelector('.schema-caret');
+                    if (caret) caret.textContent = isExpanded ? 'v' : '>';
+
+                    if (isExpanded && !wrapper.dataset.loaded) {
+                        wrapper.dataset.loaded = '1';
+                        const columnsContainer = wrapper.querySelector('.schema-columns');
+                        if (columnsContainer) {
+                            columnsContainer.innerHTML = '<div class="text-muted small px-3 py-2">Loading columns...</div>';
+                        }
+                        await loadColumns(item, wrapper);
+                    }
+                });
+
+                const columns = document.createElement('div');
+                columns.className = 'schema-columns';
+                wrapper.appendChild(header);
+                wrapper.appendChild(columns);
+                wrapper.dataset.schema = item.schema;
+                wrapper.dataset.table = item.name;
+                schemaList.appendChild(wrapper);
+            });
+        };
+
+        const applyFilter = () => {
+            const term = schemaSearch.value.trim().toLowerCase();
+            const filtered = term
+                ? tables.filter(t => `${t.schema}.${t.name}`.toLowerCase().includes(term))
+                : tables;
+            renderList(filtered);
+        };
+
+        const loadColumns = async (table, wrapper) => {
+            const dataSourceId = Number(dataSourceSelect.value);
+            if (!dataSourceId) return;
+
+            try {
+                const url = `/Queries/SchemaColumns?dataSourceId=${dataSourceId}&schemaName=${encodeURIComponent(table.schema)}&tableName=${encodeURIComponent(table.name)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                const container = wrapper.querySelector('.schema-columns');
+                if (!container) return;
+
+                if (!response.ok || !data.success) {
+                    container.innerHTML = `<div class="text-danger small px-3 py-2">${data.errorMessage || 'Failed to load columns.'}</div>`;
+                    return;
+                }
+
+                if (!data.columns || data.columns.length === 0) {
+                    container.innerHTML = '<div class="text-muted small px-3 py-2">No columns found.</div>';
+                    return;
+                }
+
+                const tableKey = `${table.schema}.${table.name}`;
+                schemaState.columnsByTable[tableKey] = data.columns;
+
+                container.innerHTML = '';
+                data.columns.forEach((col) => {
+                    const row = document.createElement('button');
+                    row.type = 'button';
+                    row.className = 'schema-column';
+                    row.innerHTML = `<span class="schema-column-name">${col.name}</span><span class="schema-column-type">${col.dataType}</span>`;
+                    row.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        insertText(`[${col.name}]`);
+                    });
+                    container.appendChild(row);
+                });
+            } catch (err) {
+                const container = wrapper.querySelector('.schema-columns');
+                if (container) {
+                    container.innerHTML = '<div class="text-danger small px-3 py-2">Failed to load columns.</div>';
+                }
+            }
+        };
+
+        const loadSchema = async () => {
+            const dataSourceId = Number(dataSourceSelect.value);
+            schemaList.innerHTML = '<div class="list-group-item text-muted">Loading tables...</div>';
+            if (!dataSourceId) {
+                schemaList.innerHTML = '<div class="list-group-item text-muted">Select a data source to load tables.</div>';
+                tables = [];
+                schemaState.tables = [];
+                schemaState.columnsByTable = {};
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Queries/Schema?dataSourceId=${dataSourceId}`);
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    schemaList.innerHTML = `<div class="list-group-item text-danger">${data.errorMessage || 'Failed to load schema.'}</div>`;
+                    tables = [];
+                    schemaState.tables = [];
+                    schemaState.columnsByTable = {};
+                    return;
+                }
+                tables = data.tables || [];
+                schemaState.tables = tables;
+                schemaState.columnsByTable = {};
+                applyFilter();
+            } catch (err) {
+                schemaList.innerHTML = '<div class="list-group-item text-danger">Failed to load schema.</div>';
+                tables = [];
+                schemaState.tables = [];
+                schemaState.columnsByTable = {};
+            }
+        };
+
+        dataSourceSelect.addEventListener('change', loadSchema);
+        schemaSearch.addEventListener('input', applyFilter);
+
+        loadSchema();
+    })();
+</script>
+
+<script>
+    (() => {
+        const input = document.querySelector('.sql-editor-input');
+        const gutter = document.getElementById('sqlLineNumbers');
+        if (!input || !gutter) return;
+
+        const updateLineNumbers = () => {
+            const lines = input.value.split('\n').length || 1;
+            gutter.textContent = Array.from({ length: lines }, (_, i) => i + 1).join('\n');
+        };
+
+        input.addEventListener('input', updateLineNumbers);
+        input.addEventListener('scroll', () => {
+            gutter.scrollTop = input.scrollTop;
+        });
+
+        updateLineNumbers();
+    })();
+</script>
+
+@if (Model.Result != null && Model.Result.Success)
+{
+    @using System.Text.Json
+    var columnsJson = JsonSerializer.Serialize(Model.Result.Columns);
+    var rowsJson = JsonSerializer.Serialize(Model.Result.Rows);
+
+    <script>
+        (() => {
+            const btn = document.getElementById('downloadCsvBtn');
+            if (!btn) return;
+
+            const columns = @Html.Raw(columnsJson);
+            const rows = @Html.Raw(rowsJson);
+
+            const escapeCell = (value) => {
+                if (value === null || value === undefined) return '';
+                const str = String(value);
+                if (str.includes('"') || str.includes(',') || str.includes('\n')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+            };
+
+            btn.addEventListener('click', () => {
+                const lines = [];
+                lines.push(columns.map(escapeCell).join(','));
+                rows.forEach(row => {
+                    lines.push(row.map(escapeCell).join(','));
+                });
+                const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'query-results.csv';
+                link.click();
+                URL.revokeObjectURL(url);
+            });
+        })();
+    </script>
+}
+
+
+<script type="module">
+    import { EditorState } from "https://esm.sh/@@codemirror/state";
+    import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "https://esm.sh/@@codemirror/view";
+    import { defaultKeymap, history, historyKeymap } from "https://esm.sh/@@codemirror/commands";
+    import { autocompletion } from "https://esm.sh/@@codemirror/autocomplete";
+    import { sql, MSSQL } from "https://esm.sh/@@codemirror/lang-sql";
+    import { oneDark } from "https://esm.sh/@@codemirror/theme-one-dark";
+
+    const textarea = document.querySelector(".sql-editor-input");
+    if (textarea) {
+        const host = document.createElement("div");
+        host.className = "cm-host";
+        textarea.parentElement?.appendChild(host);
+
+        const schemaCompletion = (context) => {
+            const word = context.matchBefore(/[\w.\]]+/);
+            if (!word && !context.explicit) return null;
+            const from = word ? word.from : context.pos;
+            const term = word ? word.text.replace(/\[/g, '').toLowerCase() : '';
+            const schema = window.queryBuilderSchema || { tables: [], columnsByTable: {} };
+
+            const options = [];
+            schema.tables.forEach((table) => {
+                const label = `[${table.schema}].[${table.name}]`;
+                if (!term || label.toLowerCase().includes(term)) {
+                    options.push({ label, type: "table" });
+                }
+            });
+
+            Object.entries(schema.columnsByTable || {}).forEach(([tableKey, cols]) => {
+                cols.forEach((col) => {
+                    const label = `[${col.name}]`;
+                    if (!term || label.toLowerCase().includes(term)) {
+                        options.push({ label, type: "property", detail: tableKey });
+                    }
+                });
+            });
+
+            return { from, options, validFor: /[\w.\]]*/ };
+        };
+
+        const state = EditorState.create({
+            doc: textarea.value,
+            extensions: [
+                lineNumbers(),
+                highlightActiveLineGutter(),
+                history(),
+                drawSelection(),
+                keymap.of([...defaultKeymap, ...historyKeymap]),
+                sql({ dialect: MSSQL }),
+                autocompletion({ override: [schemaCompletion] }),
+                oneDark
+            ]
+        });
+
+        const view = new EditorView({
+            state,
+            parent: host
+        });
+
+        textarea.style.display = "none";
+        document.body.classList.add("editor-enhanced");
+        window.queryBuilderEditor = view;
+
+        const form = textarea.closest("form");
+        form?.addEventListener("submit", () => {
+            textarea.value = view.state.doc.toString();
+        });
+    }
+</script>

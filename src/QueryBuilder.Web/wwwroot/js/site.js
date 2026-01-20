@@ -37,3 +37,30 @@
     }
   });
 })();
+
+(() => {
+  const seed = document.getElementById("toastSeed");
+  const container = document.getElementById("toastContainer");
+  if (!seed || !container) return;
+
+  const message = seed.getAttribute("data-toast-message");
+  const level = seed.getAttribute("data-toast-level") || "info";
+  if (!message) return;
+
+  const toast = document.createElement("div");
+  toast.className = `toast align-items-center text-bg-${level} border-0`;
+  toast.setAttribute("role", "alert");
+  toast.setAttribute("aria-live", "assertive");
+  toast.setAttribute("aria-atomic", "true");
+
+  toast.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body">${message}</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  `;
+
+  container.appendChild(toast);
+  const bsToast = new bootstrap.Toast(toast, { delay: 3500 });
+  bsToast.show();
+})();
