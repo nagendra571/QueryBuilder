@@ -19,6 +19,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<QueryRunner>();
 builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<SchemaBrowserService>();
 
 var app = builder.Build();
 

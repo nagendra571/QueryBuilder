@@ -20,8 +20,20 @@
     const meta = document.createElement("span");
     meta.className = "badge bg-light text-dark border";
     meta.textContent = widget.visualizationType;
+    const actions = document.createElement("div");
+    actions.className = "dashboard-widget-actions";
+    if (state.editMode) {
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "dashboard-widget-action dashboard-widget-remove";
+      removeBtn.title = "Remove widget";
+      removeBtn.setAttribute("data-action", "remove");
+      removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+      actions.appendChild(removeBtn);
+    }
+    actions.appendChild(meta);
     header.appendChild(title);
-    header.appendChild(meta);
+    header.appendChild(actions);
 
     const body = document.createElement("div");
     body.className = "dashboard-widget-body";
@@ -43,6 +55,14 @@
     item.setAttribute("data-visualization-id", widget.visualizationId);
     if (widget.id) {
       item.setAttribute("data-widget-id", widget.id);
+    }
+
+    const removeButton = item.querySelector("[data-action='remove']");
+    if (removeButton) {
+      removeButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        grid.removeWidget(item);
+      });
     }
   };
 

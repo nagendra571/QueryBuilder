@@ -4,15 +4,12 @@
     ViewData["Title"] = "Edit Query";
 }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="h3 mb-0">Edit Query</h1>
-    <span class="badge text-bg-secondary">ID @Model.Id</span>
+<div class="query-page">
+    <form method="post">
+        <input type="hidden" asp-for="Id" />
+        <partial name="_QueryForm" />
+    </form>
 </div>
-
-<form method="post">
-    <input type="hidden" asp-for="Id" />
-    <partial name="_QueryForm" />
-</form>
 
 <div class="mt-4">
     <div class="d-flex align-items-center justify-content-between mb-2">

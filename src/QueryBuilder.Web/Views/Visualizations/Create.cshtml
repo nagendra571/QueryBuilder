@@ -4,81 +4,100 @@
     ViewData["Title"] = "New Visualization";
 }
 
-<h1 class="h3 mb-3">New Visualization</h1>
-
-<form method="post">
-    <input type="hidden" asp-for="QueryId" />
-
-    <div class="mb-3">
-        <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Type" class="form-label"></label>
-        <select asp-for="Type" class="form-select" asp-items="ViewBag.VisualizationTypes"></select>
-        <span asp-validation-for="Type" class="text-danger"></span>
-    </div>
-
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label asp-for="XColumn" class="form-label"></label>
-            <select asp-for="XColumn" class="form-select">
-                <option value="">--</option>
-                @foreach (var column in Model.Columns)
-                {
-                    <option value="@column">@column</option>
-                }
-            </select>
+<div class="viz-editor">
+    <div class="viz-shell">
+        <div class="viz-header">
+            <div>
+                <div class="h5 mb-0">Visualization Editor</div>
+                <div class="text-muted small">Query @Model.QueryId</div>
+            </div>
+            <a class="btn btn-sm btn-outline-secondary" asp-controller="Queries" asp-action="Edit" asp-route-id="@Model.QueryId">Close</a>
         </div>
-        <div class="col-md-6 mb-3">
-            <label asp-for="YColumn" class="form-label"></label>
-            <select asp-for="YColumn" class="form-select">
-                <option value="">--</option>
-                @foreach (var column in Model.Columns)
+
+        <div class="viz-body">
+            <form method="post" class="viz-config">
+                <input type="hidden" asp-for="QueryId" />
+
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Type" class="form-label"></label>
+                    <select asp-for="Type" class="form-select" asp-items="ViewBag.VisualizationTypes"></select>
+                    <span asp-validation-for="Type" class="text-danger"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="XColumn" class="form-label"></label>
+                        <select asp-for="XColumn" class="form-select">
+                            <option value="">--</option>
+                            @foreach (var column in Model.Columns)
+                            {
+                                <option value="@column">@column</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="YColumn" class="form-label"></label>
+                        <select asp-for="YColumn" class="form-select">
+                            <option value="">--</option>
+                            @foreach (var column in Model.Columns)
+                            {
+                                <option value="@column">@column</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="LabelColumn" class="form-label"></label>
+                        <select asp-for="LabelColumn" class="form-select">
+                            <option value="">--</option>
+                            @foreach (var column in Model.Columns)
+                            {
+                                <option value="@column">@column</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="ValueColumn" class="form-label"></label>
+                        <select asp-for="ValueColumn" class="form-select">
+                            <option value="">--</option>
+                            @foreach (var column in Model.Columns)
+                            {
+                                <option value="@column">@column</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mb-4">
+                    <button class="btn btn-outline-primary" type="submit" name="SubmitAction" value="preview">Preview</button>
+                    <button class="btn btn-success" type="submit" name="SubmitAction" value="save">Save</button>
+                </div>
+            </form>
+
+            <div class="viz-preview">
+                @if (Model.Result != null && Model.Result.Success)
                 {
-                    <option value="@column">@column</option>
+                    <div class="alert alert-info">Preview based on current query result.</div>
+                    <partial name="_VisualizationPreview" model="Model" />
                 }
-            </select>
+                else
+                {
+                    <div class="viz-preview-empty">
+                        <div class="text-muted">Run a preview to see your chart here.</div>
+                    </div>
+                }
+            </div>
         </div>
     </div>
-
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label asp-for="LabelColumn" class="form-label"></label>
-            <select asp-for="LabelColumn" class="form-select">
-                <option value="">--</option>
-                @foreach (var column in Model.Columns)
-                {
-                    <option value="@column">@column</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-6 mb-3">
-            <label asp-for="ValueColumn" class="form-label"></label>
-            <select asp-for="ValueColumn" class="form-select">
-                <option value="">--</option>
-                @foreach (var column in Model.Columns)
-                {
-                    <option value="@column">@column</option>
-                }
-            </select>
-        </div>
-    </div>
-
-    <div class="d-flex gap-2 mb-4">
-        <button class="btn btn-outline-primary" type="submit" name="SubmitAction" value="preview">Preview</button>
-        <button class="btn btn-success" type="submit" name="SubmitAction" value="save">Save</button>
-        <a class="btn btn-link" asp-controller="Queries" asp-action="Edit" asp-route-id="@Model.QueryId">Back</a>
-    </div>
-</form>
-
-@if (Model.Result != null && Model.Result.Success)
-{
-    <div class="alert alert-info">Preview based on current query result.</div>
-    <partial name="_VisualizationPreview" model="Model" />
-}
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

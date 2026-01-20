@@ -73,7 +73,8 @@
         window.dashboardBuilder = {
             dashboardId: @Model.Id,
             widgets: @Html.Raw(widgetsJson),
-            visualizations: @Html.Raw(visualsJson)
+            visualizations: @Html.Raw(visualsJson),
+            editMode: true
         };
     </script>
     <script src="~/js/dashboards.js" asp-append-version="true"></script>

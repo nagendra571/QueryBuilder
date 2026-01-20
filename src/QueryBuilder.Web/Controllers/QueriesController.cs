@@ -18,17 +18,20 @@ public class QueriesController : Controller
     private readonly UserManager<IdentityUser> _userManager;
     private readonly QueryRunner _queryRunner;
     private readonly PermissionService _permissionService;
+    private readonly SchemaBrowserService _schemaBrowserService;
 
     public QueriesController(
         ApplicationDbContext dbContext,
         UserManager<IdentityUser> userManager,
         QueryRunner queryRunner,
-        PermissionService permissionService)
+        PermissionService permissionService,
+        SchemaBrowserService schemaBrowserService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _queryRunner = queryRunner;
         _permissionService = permissionService;
+        _schemaBrowserService = schemaBrowserService;
     }
 
     public async Task<IActionResult> Index()
@@ -259,6 +262,32 @@ public class QueriesController : Controller
         };
 
         return View(model);
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> Schema(int dataSourceId)
+    {
+        if (dataSourceId <= 0)
+        {
+            return BadRequest();
+        }
+
+        var result = await _schemaBrowserService.GetTablesAsync(dataSourceId);
+        return Json(result);
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> SchemaColumns(int dataSourceId, string schemaName, string tableName)
+    {
+        if (dataSourceId <= 0 || string.IsNullOrWhiteSpace(schemaName) || string.IsNullOrWhiteSpace(tableName))
+        {
+            return BadRequest();
+        }
+
+        var result = await _schemaBrowserService.GetColumnsAsync(dataSourceId, schemaName, tableName);
+        return Json(result);
     }
 
     [HttpPost]
