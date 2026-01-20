@@ -78,8 +78,10 @@ else
             rows: @Html.Raw(dataJson),
             xColumn: "@(Model.Config.XColumn ?? string.Empty)",
             yColumn: "@(Model.Config.YColumn ?? string.Empty)",
+            yColumns: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Config.YColumns)),
             labelColumn: "@(Model.Config.LabelColumn ?? string.Empty)",
-            valueColumn: "@(Model.Config.ValueColumn ?? string.Empty)"
+            valueColumn: "@(Model.Config.ValueColumn ?? string.Empty)",
+            showLegend: @Model.Config.ShowLegend.ToString().ToLowerInvariant()
         };
     </script>
 }

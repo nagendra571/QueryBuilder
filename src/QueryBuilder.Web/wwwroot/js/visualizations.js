@@ -13,12 +13,26 @@
     return Number.isFinite(num) ? num : null;
   };
 
+  const palette = [
+    "#2563eb",
+    "#16a34a",
+    "#f59e0b",
+    "#ef4444",
+    "#8b5cf6",
+    "#14b8a6",
+    "#f97316",
+    "#0ea5e9"
+  ];
+
   const buildSeries = (config) => {
     const { rows, index } = mapRows(config.columns || [], config.rows || []);
     const xIndex = index[config.xColumn];
     const yIndex = index[config.yColumn];
     const labelIndex = index[config.labelColumn];
     const valueIndex = index[config.valueColumn];
+    const yColumns = Array.isArray(config.yColumns) && config.yColumns.length > 0
+      ? config.yColumns
+      : (config.yColumn ? [config.yColumn] : []);
 
     if (config.type === "Pie") {
       const labels = [];
@@ -27,20 +41,31 @@
         labels.push(row[labelIndex] ?? "");
         data.push(toNumber(row[valueIndex]) ?? 0);
       });
-      return { labels, data };
+      return { labels, datasets: [{ label: config.valueColumn || "Value", data }] };
     }
 
     if (config.type === "Line" || config.type === "Bar") {
       const labels = [];
-      const data = [];
       rows.forEach((row) => {
         labels.push(row[xIndex] ?? "");
-        data.push(toNumber(row[yIndex]) ?? 0);
       });
-      return { labels, data };
+
+      const datasets = yColumns.map((col, i) => {
+        const colIndex = index[col];
+        const data = rows.map((row) => toNumber(row[colIndex]) ?? 0);
+        return {
+          label: col,
+          data,
+          borderColor: palette[i % palette.length],
+          backgroundColor: config.type === "Bar"
+            ? palette[i % palette.length] + "55"
+            : palette[i % palette.length] + "33"
+        };
+      });
+      return { labels, datasets };
     }
 
-    return { labels: [], data: [] };
+    return { labels: [], datasets: [] };
   };
 
   const renderChart = (canvasId, config) => {
@@ -58,22 +83,13 @@
       type: chartType,
       data: {
         labels: series.labels,
-        datasets: [
-          {
-            label: config.yColumn || config.valueColumn || "Value",
-            data: series.data,
-            borderColor: "#0d6efd",
-            backgroundColor: chartType === "pie"
-              ? ["#0d6efd", "#198754", "#ffc107", "#dc3545", "#6f42c1", "#20c997", "#fd7e14"]
-              : "rgba(13, 110, 253, 0.25)"
-          }
-        ]
+        datasets: series.datasets
       },
       options: {
         responsive: true,
         plugins: {
           legend: {
-            display: chartType === "pie"
+            display: config.showLegend !== false
           }
         },
         scales: chartType === "pie"
