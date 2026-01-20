@@ -6,12 +6,16 @@
     <title>@ViewData["Title"] - QueryBuilder</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/QueryBuilder.Web.styles.css" asp-append-version="true" />
 </head>
 <body>
     <header class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
         <div class="container-fluid">
+            <button class="btn btn-outline-secondary d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar">
+                <span class="bi bi-list"></span>
+            </button>
             <a class="navbar-brand fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">QueryBuilder</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav" aria-controls="topNav"
                     aria-expanded="false" aria-label="Toggle navigation">
@@ -25,33 +29,99 @@
     <div class="container-fluid">
         <div class="row">
             <nav class="col-md-2 d-none d-md-block bg-light sidebar border-end">
-                <div class="position-sticky pt-3">
+                <div class="position-sticky pt-3 sidebar-inner">
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Queries" asp-action="Index">Queries</a>
+                            <a class="nav-link" asp-area="" asp-controller="Queries" asp-action="Index">
+                                <span class="sidebar-icon bi bi-code-square"></span>
+                                <span class="sidebar-label">Queries</span>
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Dashboards" asp-action="Index">Dashboards</a>
+                            <a class="nav-link" asp-area="" asp-controller="Dashboards" asp-action="Index">
+                                <span class="sidebar-icon bi bi-grid-1x2"></span>
+                                <span class="sidebar-label">Dashboards</span>
+                            </a>
                         </li>
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item mt-2 text-uppercase small text-muted ps-3">Admin</li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="DataSources" asp-action="Index">Data Sources</a>
+                                <a class="nav-link" asp-area="" asp-controller="DataSources" asp-action="Index">
+                                    <span class="sidebar-icon bi bi-database"></span>
+                                    <span class="sidebar-label">Data Sources</span>
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Users">Users</a>
+                                <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Users">
+                                    <span class="sidebar-icon bi bi-people"></span>
+                                    <span class="sidebar-label">Users</span>
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Groups">Groups</a>
+                                <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Groups">
+                                    <span class="sidebar-icon bi bi-people-fill"></span>
+                                    <span class="sidebar-label">Groups</span>
+                                </a>
                             </li>
                         }
                     </ul>
+                    <div class="sidebar-footer mt-auto">
+                        <button class="btn btn-light w-100 sidebar-toggle" type="button" id="sidebarToggle">
+                            <span class="sidebar-toggle-icon bi bi-chevron-left"></span>
+                            <span class="sidebar-label">Collapse</span>
+                        </button>
+                    </div>
                 </div>
             </nav>
-            <main class="col-md-10 ms-sm-auto px-md-4 py-4" role="main">
+            <main class="col-md-10 ms-sm-auto px-md-4 py-4 main-content" role="main">
                 @RenderBody()
             </main>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="mobileSidebarLabel">Menu</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" asp-area="" asp-controller="Queries" asp-action="Index">
+                        <span class="sidebar-icon bi bi-code-square"></span>
+                        <span class="sidebar-label">Queries</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-area="" asp-controller="Dashboards" asp-action="Index">
+                        <span class="sidebar-icon bi bi-grid-1x2"></span>
+                        <span class="sidebar-label">Dashboards</span>
+                    </a>
+                </li>
+                @if (User.IsInRole("Admin"))
+                {
+                    <li class="nav-item mt-2 text-uppercase small text-muted ps-3">Admin</li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-area="" asp-controller="DataSources" asp-action="Index">
+                            <span class="sidebar-icon bi bi-database"></span>
+                            <span class="sidebar-label">Data Sources</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Users">
+                            <span class="sidebar-icon bi bi-people"></span>
+                            <span class="sidebar-label">Users</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Groups">
+                            <span class="sidebar-icon bi bi-people-fill"></span>
+                            <span class="sidebar-label">Groups</span>
+                        </a>
+                    </li>
+                }
+            </ul>
         </div>
     </div>
 
