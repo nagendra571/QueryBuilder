@@ -1,14 +1,15 @@
 @model QueryBuilder.Web.Models.Visualizations.VisualizationEditViewModel
 
 @{
-    ViewData["Title"] = "New Visualization";
+    ViewData["Title"] = ViewData["Title"] as string ?? "New Visualization";
+    var actionLabel = Model.Id.HasValue ? "Edit" : "New";
 }
 
 <div class="viz-editor">
     <div class="viz-shell">
         <div class="viz-header">
             <div>
-                <div class="h5 mb-0">Visualization Editor</div>
+                <div class="h5 mb-0">@actionLabel Visualization</div>
                 <div class="text-muted small">Query @Model.QueryId</div>
             </div>
             <a class="btn btn-sm btn-outline-secondary" asp-controller="Queries" asp-action="Edit" asp-route-id="@Model.QueryId">Close</a>
@@ -16,6 +17,7 @@
 
         <div class="viz-body">
             <form method="post" class="viz-config">
+                <input type="hidden" asp-for="Id" />
                 <input type="hidden" asp-for="QueryId" />
 
                 <div class="mb-3">
@@ -24,55 +26,89 @@
                     <span asp-validation-for="Name" class="text-danger"></span>
                 </div>
 
-                <div class="mb-3">
-                    <label asp-for="Type" class="form-label"></label>
-                    <select asp-for="Type" class="form-select" asp-items="ViewBag.VisualizationTypes"></select>
-                    <span asp-validation-for="Type" class="text-danger"></span>
-                </div>
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#vizGeneral" type="button" role="tab">General</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizXAxis" type="button" role="tab">X Axis</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizYAxis" type="button" role="tab">Y Axis</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizSeries" type="button" role="tab">Series</button>
+                    </li>
+                </ul>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="XColumn" class="form-label"></label>
-                        <select asp-for="XColumn" class="form-select">
-                            <option value="">--</option>
-                            @foreach (var column in Model.Columns)
-                            {
-                                <option value="@column">@column</option>
-                            }
-                        </select>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="vizGeneral" role="tabpanel">
+                        <div class="mb-3">
+                            <label asp-for="Type" class="form-label"></label>
+                            <select asp-for="Type" class="form-select" asp-items="ViewBag.VisualizationTypes"></select>
+                            <span asp-validation-for="Type" class="text-danger"></span>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input asp-for="ShowLegend" class="form-check-input" />
+                            <label asp-for="ShowLegend" class="form-check-label"></label>
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="YColumn" class="form-label"></label>
-                        <select asp-for="YColumn" class="form-select">
-                            <option value="">--</option>
-                            @foreach (var column in Model.Columns)
-                            {
-                                <option value="@column">@column</option>
-                            }
-                        </select>
+                    <div class="tab-pane fade" id="vizXAxis" role="tabpanel">
+                        <div class="mb-3">
+                            <label asp-for="XColumn" class="form-label"></label>
+                            <select asp-for="XColumn" class="form-select">
+                                <option value="">--</option>
+                                @foreach (var column in Model.Columns)
+                                {
+                                    <option value="@column">@column</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="GroupByColumn" class="form-label"></label>
+                            <select asp-for="GroupByColumn" class="form-select">
+                                <option value="">--</option>
+                                @foreach (var column in Model.Columns)
+                                {
+                                    <option value="@column">@column</option>
+                                }
+                            </select>
+                            <div class="form-text">Optional. Stored for future grouping logic.</div>
+                        </div>
                     </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="LabelColumn" class="form-label"></label>
-                        <select asp-for="LabelColumn" class="form-select">
-                            <option value="">--</option>
-                            @foreach (var column in Model.Columns)
-                            {
-                                <option value="@column">@column</option>
-                            }
-                        </select>
+                    <div class="tab-pane fade" id="vizYAxis" role="tabpanel">
+                        <div class="mb-3">
+                            <label asp-for="YColumns" class="form-label"></label>
+                            <select asp-for="YColumns" class="form-select" multiple size="6">
+                                @foreach (var column in Model.Columns)
+                                {
+                                    <option value="@column" selected="@(Model.YColumns.Contains(column) ? "selected" : null)">@column</option>
+                                }
+                            </select>
+                            <div class="form-text">Select one or more series.</div>
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="ValueColumn" class="form-label"></label>
-                        <select asp-for="ValueColumn" class="form-select">
-                            <option value="">--</option>
-                            @foreach (var column in Model.Columns)
-                            {
-                                <option value="@column">@column</option>
-                            }
-                        </select>
+                    <div class="tab-pane fade" id="vizSeries" role="tabpanel">
+                        <div class="mb-3">
+                            <label asp-for="LabelColumn" class="form-label"></label>
+                            <select asp-for="LabelColumn" class="form-select">
+                                <option value="">--</option>
+                                @foreach (var column in Model.Columns)
+                                {
+                                    <option value="@column">@column</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="ValueColumn" class="form-label"></label>
+                            <select asp-for="ValueColumn" class="form-select">
+                                <option value="">--</option>
+                                @foreach (var column in Model.Columns)
+                                {
+                                    <option value="@column">@column</option>
+                                }
+                            </select>
+                        </div>
                     </div>
                 </div>
 

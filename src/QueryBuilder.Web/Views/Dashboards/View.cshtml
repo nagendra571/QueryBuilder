@@ -45,8 +45,10 @@
                 rows: @Html.Raw(rowsJson),
                 xColumn: "@(widget.Config.XColumn ?? string.Empty)",
                 yColumn: "@(widget.Config.YColumn ?? string.Empty)",
+                yColumns: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(widget.Config.YColumns)),
                 labelColumn: "@(widget.Config.LabelColumn ?? string.Empty)",
-                valueColumn: "@(widget.Config.ValueColumn ?? string.Empty)"
+                valueColumn: "@(widget.Config.ValueColumn ?? string.Empty)",
+                showLegend: @widget.Config.ShowLegend.ToString().ToLowerInvariant()
             });
             </text>
         }

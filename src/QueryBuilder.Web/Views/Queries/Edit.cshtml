@@ -25,13 +25,13 @@
         <div class="list-group">
             @foreach (var viz in Model.Visualizations)
             {
-                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                   asp-controller="Visualizations"
-                   asp-action="Details"
-                   asp-route-id="@viz.Id">
-                    <span>@viz.Name</span>
-                    <span class="badge text-bg-secondary">@viz.Type</span>
-                </a>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <a class="fw-semibold text-decoration-none" asp-controller="Visualizations" asp-action="Details" asp-route-id="@viz.Id">@viz.Name</a>
+                        <div class="small text-muted">@viz.Type</div>
+                    </div>
+                    <a class="btn btn-sm btn-outline-primary" asp-controller="Visualizations" asp-action="Edit" asp-route-id="@viz.Id">Edit</a>
+                </div>
             }
         </div>
     }

@@ -59,8 +59,10 @@ else
             rows: @Html.Raw(dataJson),
             xColumn: "@(Model.XColumn ?? string.Empty)",
             yColumn: "@(Model.YColumn ?? string.Empty)",
+            yColumns: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.YColumns)),
             labelColumn: "@(Model.LabelColumn ?? string.Empty)",
-            valueColumn: "@(Model.ValueColumn ?? string.Empty)"
+            valueColumn: "@(Model.ValueColumn ?? string.Empty)",
+            showLegend: @Model.ShowLegend.ToString().ToLowerInvariant()
         };
     </script>
 }
