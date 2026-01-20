@@ -1,0 +1,43 @@
+@model QueryBuilder.Web.Models.DataSources.DataSourceEditViewModel
+
+@if (ViewData["TestResult"] is string testResult)
+{
+    var status = ViewData["TestResultStatus"] as string ?? "info";
+    <div class="alert alert-@status">@testResult</div>
+}
+
+<div class="mb-3">
+    <label asp-for="Name" class="form-label"></label>
+    <input asp-for="Name" class="form-control" />
+    <span asp-validation-for="Name" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Description" class="form-label"></label>
+    <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+    <span asp-validation-for="Description" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Type" class="form-label"></label>
+    <select asp-for="Type" class="form-select" asp-items="Html.GetEnumSelectList<QueryBuilder.Domain.Entities.DataSourceType>()"></select>
+    <span asp-validation-for="Type" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="ConnectionString" class="form-label"></label>
+    <input asp-for="ConnectionString" class="form-control" />
+    <span asp-validation-for="ConnectionString" class="text-danger"></span>
+    <div class="form-text">Store a read-only connection string when possible.</div>
+</div>
+
+<div class="form-check mb-4">
+    <input asp-for="IsActive" class="form-check-input" />
+    <label asp-for="IsActive" class="form-check-label"></label>
+</div>
+
+<div class="d-flex gap-2">
+    <button class="btn btn-outline-secondary" type="submit" name="SubmitAction" value="test">Test Connection</button>
+    <button class="btn btn-primary" type="submit" name="SubmitAction" value="save">Save</button>
+    <a class="btn btn-link" asp-action="Index">Cancel</a>
+</div>

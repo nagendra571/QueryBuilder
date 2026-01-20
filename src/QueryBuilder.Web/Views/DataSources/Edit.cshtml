@@ -1,0 +1,16 @@
+@model QueryBuilder.Web.Models.DataSources.DataSourceEditViewModel
+
+@{
+    ViewData["Title"] = "Edit Data Source";
+}
+
+<h1 class="h3 mb-3">Edit Data Source</h1>
+
+<form method="post">
+    <input type="hidden" asp-for="Id" />
+    <partial name="_DataSourceForm" />
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,66 @@
+@model QueryBuilder.Web.Models.Visualizations.VisualizationEditViewModel
+@using System.Text.Json
+
+@{
+    var dataJson = JsonSerializer.Serialize(Model.Result?.Rows ?? Array.Empty<IReadOnlyList<string?>>());
+    var columnsJson = JsonSerializer.Serialize(Model.Result?.Columns ?? Array.Empty<string>());
+}
+
+@if (Model.Type == QueryBuilder.Domain.Entities.VisualizationType.Table)
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead>
+                <tr>
+                    @foreach (var column in Model.Result?.Columns ?? Array.Empty<string>())
+                    {
+                        <th>@column</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                @if (Model.Result == null || Model.Result.Rows.Count == 0)
+                {
+                    <tr>
+                        <td colspan="@(Model.Result?.Columns.Count ?? 1)" class="text-muted">No rows returned.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var row in Model.Result.Rows)
+                    {
+                        <tr>
+                            @foreach (var cell in row)
+                            {
+                                <td>@cell</td>
+                            }
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <canvas id="vizPreview" height="120"></canvas>
+        </div>
+    </div>
+
+    <script>
+        window.queryBuilderViz = window.queryBuilderViz || {};
+        window.queryBuilderViz.preview = {
+            type: "@Model.Type",
+            columns: @Html.Raw(columnsJson),
+            rows: @Html.Raw(dataJson),
+            xColumn: "@(Model.XColumn ?? string.Empty)",
+            yColumn: "@(Model.YColumn ?? string.Empty)",
+            labelColumn: "@(Model.LabelColumn ?? string.Empty)",
+            valueColumn: "@(Model.ValueColumn ?? string.Empty)"
+        };
+    </script>
+}

@@ -1,0 +1,46 @@
+@model IEnumerable<QueryBuilder.Domain.Entities.DataSource>
+
+@{
+    ViewData["Title"] = "Data Sources";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h3 mb-0">Data Sources</h1>
+    <a class="btn btn-primary" asp-action="Create">New Data Source</a>
+</div>
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-success">@statusMessage</div>
+}
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Active</th>
+                <th>Updated</th>
+                <th class="text-end">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var dataSource in Model)
+            {
+                <tr>
+                    <td>@dataSource.Name</td>
+                    <td>@dataSource.Type</td>
+                    <td>@(dataSource.IsActive ? "Yes" : "No")</td>
+                    <td>@dataSource.UpdatedAt.ToLocalTime().ToString("g")</td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@dataSource.Id">Edit</a>
+                        <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@dataSource.Id">Delete</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+@model QueryBuilder.Domain.Entities.DataSource
+
+@{
+    ViewData["Title"] = "Delete Data Source";
+}
+
+<h1 class="h3 mb-3">Delete Data Source</h1>
+
+<div class="alert alert-warning">
+    Are you sure you want to delete <strong>@Model.Name</strong>?
+</div>
+
+<form method="post" asp-action="DeleteConfirmed">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <button class="btn btn-danger" type="submit">Delete</button>
+    <a class="btn btn-link" asp-action="Index">Cancel</a>
+</form>

@@ -1,0 +1,15 @@
+@model QueryBuilder.Web.Models.DataSources.DataSourceEditViewModel
+
+@{
+    ViewData["Title"] = "New Data Source";
+}
+
+<h1 class="h3 mb-3">New Data Source</h1>
+
+<form method="post">
+    <partial name="_DataSourceForm" />
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

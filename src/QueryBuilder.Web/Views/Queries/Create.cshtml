@@ -1,0 +1,15 @@
+@model QueryBuilder.Web.Models.Queries.QueryEditViewModel
+
+@{
+    ViewData["Title"] = "New Query";
+}
+
+<h1 class="h3 mb-3">New Query</h1>
+
+<form method="post">
+    <partial name="_QueryForm" />
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

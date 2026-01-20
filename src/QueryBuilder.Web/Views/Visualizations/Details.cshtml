@@ -1,0 +1,90 @@
+@model QueryBuilder.Web.Models.Visualizations.VisualizationDetailsViewModel
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = Model.Visualization.Name;
+    var dataJson = JsonSerializer.Serialize(Model.Result.Rows);
+    var columnsJson = JsonSerializer.Serialize(Model.Result.Columns);
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h1 class="h3 mb-0">@Model.Visualization.Name</h1>
+        <div class="text-muted">Query: @Model.QueryName</div>
+    </div>
+    <a class="btn btn-outline-secondary" asp-controller="Queries" asp-action="Edit" asp-route-id="@Model.Visualization.QueryId">Back to Query</a>
+</div>
+
+@if (!Model.Result.Success)
+{
+    <div class="alert alert-danger">@Model.Result.ErrorMessage</div>
+}
+else
+{
+    @if (Model.Visualization.Type == QueryBuilder.Domain.Entities.VisualizationType.Table)
+    {
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead>
+                    <tr>
+                        @foreach (var column in Model.Result.Columns)
+                        {
+                            <th>@column</th>
+                        }
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Result.Rows.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="@Model.Result.Columns.Count" class="text-muted">No rows returned.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var row in Model.Result.Rows)
+                        {
+                            <tr>
+                                @foreach (var cell in row)
+                                {
+                                    <td>@cell</td>
+                                }
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <canvas id="vizChart" height="120"></canvas>
+            </div>
+        </div>
+    }
+}
+
+@if (Model.Visualization.Type != QueryBuilder.Domain.Entities.VisualizationType.Table)
+{
+    <script>
+        window.queryBuilderViz = window.queryBuilderViz || {};
+        window.queryBuilderViz.details = {
+            type: "@Model.Visualization.Type",
+            columns: @Html.Raw(columnsJson),
+            rows: @Html.Raw(dataJson),
+            xColumn: "@(Model.Config.XColumn ?? string.Empty)",
+            yColumn: "@(Model.Config.YColumn ?? string.Empty)",
+            labelColumn: "@(Model.Config.LabelColumn ?? string.Empty)",
+            valueColumn: "@(Model.Config.ValueColumn ?? string.Empty)"
+        };
+    </script>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/visualizations.js" asp-append-version="true"></script>
+}

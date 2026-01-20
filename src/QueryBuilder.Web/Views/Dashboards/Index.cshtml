@@ -1,0 +1,133 @@
+@using System.Text.RegularExpressions
+@model IEnumerable<QueryBuilder.Web.Models.Dashboards.DashboardListItemViewModel>
+
+@{
+    ViewData["Title"] = "Dashboards";
+
+    var allTags = Model
+        .SelectMany(d => ExtractTags(d.Name))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(tag => tag)
+        .ToList();
+
+    if (allTags.Count == 0)
+    {
+        allTags.Add("Untagged");
+    }
+}
+
+@functions {
+    private static IReadOnlyList<string> ExtractTags(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Array.Empty<string>();
+        }
+
+        var matches = Regex.Matches(text, "#([A-Za-z0-9_-]+)");
+        if (matches.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        var tags = new List<string>(matches.Count);
+        foreach (Match match in matches)
+        {
+            tags.Add(match.Groups[1].Value);
+        }
+
+        return tags;
+    }
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h3 mb-0">Dashboards</h1>
+    @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
+    {
+        <a class="btn btn-primary" asp-action="Create">New Dashboard</a>
+    }
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <label class="form-label small text-uppercase text-muted" for="dashboardSearch">Search</label>
+                <input class="form-control" id="dashboardSearch" type="search" placeholder="Search dashboards..." />
+            </div>
+            <div class="list-group list-group-flush" id="dashboardTags">
+                <button class="list-group-item list-group-item-action active" type="button" data-tag="All">All dashboards</button>
+                @foreach (var tag in allTags)
+                {
+                    <button class="list-group-item list-group-item-action" type="button" data-tag="@tag">#@tag</button>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-9">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Created At</th>
+                    </tr>
+                    </thead>
+                    <tbody id="dashboardTable">
+                    @foreach (var dashboard in Model)
+                    {
+                        var tags = ExtractTags(dashboard.Name);
+                        var tagList = tags.Count > 0 ? string.Join(",", tags) : "Untagged";
+
+                        <tr data-name="@dashboard.Name" data-tags="@tagList">
+                            <td>
+                                <a class="fw-semibold text-decoration-none" asp-action="View" asp-route-id="@dashboard.Id">@dashboard.Name</a>
+                                @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
+                                {
+                                    <div class="small text-muted mt-1">
+                                        <a class="text-muted text-decoration-none" asp-action="Edit" asp-route-id="@dashboard.Id">Edit</a>
+                                    </div>
+                                }
+                            </td>
+                            <td>@dashboard.CreatedAt.ToLocalTime().ToString("g")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const searchInput = document.getElementById('dashboardSearch');
+            const tagButtons = document.querySelectorAll('#dashboardTags [data-tag]');
+            const rows = Array.from(document.querySelectorAll('#dashboardTable tr'));
+            let activeTag = 'All';
+
+            const applyFilters = () => {
+                const term = (searchInput.value || '').trim().toLowerCase();
+                rows.forEach(row => {
+                    const name = (row.getAttribute('data-name') || '').toLowerCase();
+                    const tags = (row.getAttribute('data-tags') || '').toLowerCase().split(',');
+                    const matchesTerm = !term || name.includes(term);
+                    const matchesTag = activeTag === 'All' || tags.includes(activeTag.toLowerCase());
+                    row.classList.toggle('d-none', !(matchesTerm && matchesTag));
+                });
+            };
+
+            searchInput.addEventListener('input', applyFilters);
+            tagButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tagButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    activeTag = button.getAttribute('data-tag') || 'All';
+                    applyFilters();
+                });
+            });
+        })();
+    </script>
+}

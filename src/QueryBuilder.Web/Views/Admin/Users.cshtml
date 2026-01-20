@@ -1,0 +1,50 @@
+@model QueryBuilder.Web.Models.Admin.UsersViewModel
+
+@{
+    ViewData["Title"] = "Users";
+}
+
+<h1 class="h3 mb-3">Users</h1>
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-info">@statusMessage</div>
+}
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+            <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th class="text-end">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var user in Model.Users)
+            {
+                <tr>
+                    <td>@user.UserName</td>
+                    <td>@user.Email</td>
+                    <td>@user.Role</td>
+                    <td class="text-end">
+                        <form method="post" asp-action="UpdateUserRole" class="d-inline-flex gap-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="userId" value="@user.Id" />
+                            <select class="form-select form-select-sm" name="role">
+                                @foreach (var role in Model.Roles)
+                                {
+                                    <option value="@role" selected="@(role == user.Role ? "selected" : null)">@role</option>
+                                }
+                            </select>
+                            <button class="btn btn-sm btn-outline-primary" type="submit">Update</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

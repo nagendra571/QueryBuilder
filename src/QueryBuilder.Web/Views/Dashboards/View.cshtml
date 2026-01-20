@@ -1,0 +1,110 @@
+@model QueryBuilder.Web.Models.Dashboards.DashboardViewModel
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = Model.Dashboard.Name;
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h1 class="h3 mb-0">@Model.Dashboard.Name</h1>
+        <div class="text-muted">@Model.Dashboard.Description</div>
+    </div>
+    @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
+    {
+        <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@Model.Dashboard.Id">Edit</a>
+    }
+</div>
+
+<div class="grid-stack"></div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        const widgets = [];
+        @foreach (var widget in Model.Widgets)
+        {
+            var rowsJson = JsonSerializer.Serialize(widget.Result.Rows);
+            var colsJson = JsonSerializer.Serialize(widget.Result.Columns);
+            <text>
+            widgets.push({
+                id: @widget.Widget.Id,
+                x: @widget.Widget.X,
+                y: @widget.Widget.Y,
+                w: @widget.Widget.Width,
+                h: @widget.Widget.Height,
+                visualizationId: @widget.Visualization.Id,
+                visualizationName: "@widget.Visualization.Name",
+                visualizationType: "@widget.Visualization.Type",
+                columns: @Html.Raw(colsJson),
+                rows: @Html.Raw(rowsJson),
+                xColumn: "@(widget.Config.XColumn ?? string.Empty)",
+                yColumn: "@(widget.Config.YColumn ?? string.Empty)",
+                labelColumn: "@(widget.Config.LabelColumn ?? string.Empty)",
+                valueColumn: "@(widget.Config.ValueColumn ?? string.Empty)"
+            });
+            </text>
+        }
+
+        window.queryBuilderViz = window.queryBuilderViz || {};
+        window.queryBuilderViz.multi = [];
+
+        const grid = GridStack.init({ staticGrid: true, margin: 8, cellHeight: 80, float: true });
+        widgets.forEach(widget => {
+            const content = document.createElement('div');
+            content.className = 'grid-stack-item-content card';
+            const body = document.createElement('div');
+            body.className = 'card-body';
+            const title = document.createElement('div');
+            title.className = 'fw-semibold mb-2';
+            title.textContent = widget.visualizationName;
+            body.appendChild(title);
+
+            if (widget.visualizationType === "Table") {
+                const table = document.createElement('table');
+                table.className = 'table table-sm';
+                const thead = document.createElement('thead');
+                const headRow = document.createElement('tr');
+                widget.columns.forEach(col => {
+                    const th = document.createElement('th');
+                    th.textContent = col;
+                    headRow.appendChild(th);
+                });
+                thead.appendChild(headRow);
+                table.appendChild(thead);
+                const tbody = document.createElement('tbody');
+                widget.rows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    row.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell ?? '';
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                body.appendChild(table);
+            } else {
+                const canvas = document.createElement('canvas');
+                canvas.id = `viz-${widget.id}`;
+                body.appendChild(canvas);
+                window.queryBuilderViz.multi.push({
+                    canvasId: canvas.id,
+                    type: widget.visualizationType,
+                    columns: widget.columns,
+                    rows: widget.rows,
+                    xColumn: widget.xColumn,
+                    yColumn: widget.yColumn,
+                    labelColumn: widget.labelColumn,
+                    valueColumn: widget.valueColumn
+                });
+            }
+
+            content.appendChild(body);
+            grid.addWidget({ w: widget.w, h: widget.h, x: widget.x, y: widget.y, content: content.outerHTML });
+        });
+    </script>
+    <script src="~/js/visualizations.js" asp-append-version="true"></script>
+}

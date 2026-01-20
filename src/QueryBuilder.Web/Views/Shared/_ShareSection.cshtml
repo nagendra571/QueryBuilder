@@ -1,0 +1,95 @@
+@model QueryBuilder.Web.Models.Sharing.ShareSectionViewModel
+
+<div class="card">
+    <div class="card-header">
+        <span class="fw-semibold">Sharing</span>
+    </div>
+    <div class="card-body">
+        <form method="post"
+              asp-action="AddShare"
+              asp-route-id="@Model.EntityId">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="EntityId" value="@Model.EntityId" />
+            <input type="hidden" name="EntityType" value="@Model.EntityType" />
+
+            <div class="mb-3">
+                <label class="form-label">User</label>
+                <select class="form-select" name="UserId" id="shareUserSelect">
+                    <option value="">Select user</option>
+                    @foreach (var user in Model.AvailableUsers)
+                    {
+                        <option value="@user.Value">@user.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Group</label>
+                <select class="form-select" name="GroupId" id="shareGroupSelect">
+                    <option value="">Select group</option>
+                    @foreach (var group in Model.AvailableGroups)
+                    {
+                        <option value="@group.Value">@group.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Access</label>
+                <select class="form-select" name="AccessLevel">
+                    <option value="View">View</option>
+                    <option value="Edit">Edit</option>
+                </select>
+            </div>
+
+            <div class="d-grid">
+                <button class="btn btn-outline-primary" type="submit">Add Share</button>
+            </div>
+        </form>
+    </div>
+    <div class="list-group list-group-flush">
+        @if (Model.Shares.Count == 0)
+        {
+            <div class="list-group-item text-muted">No shares yet.</div>
+        }
+        else
+        {
+            @foreach (var share in Model.Shares)
+            {
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">@share.GranteeName</div>
+                        <div class="text-muted small">@share.GranteeType · @share.AccessLevel</div>
+                    </div>
+                    <form method="post"
+                          asp-action="RemoveShare"
+                          asp-route-id="@Model.EntityId">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="shareId" value="@share.Id" />
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
+                    </form>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<script>
+    (() => {
+        const userSelect = document.getElementById('shareUserSelect');
+        const groupSelect = document.getElementById('shareGroupSelect');
+        if (!userSelect || !groupSelect) return;
+
+        userSelect.addEventListener('change', () => {
+            if (userSelect.value) {
+                groupSelect.value = '';
+            }
+        });
+
+        groupSelect.addEventListener('change', () => {
+            if (groupSelect.value) {
+                userSelect.value = '';
+            }
+        });
+    })();
+</script>

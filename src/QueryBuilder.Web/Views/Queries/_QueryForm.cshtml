@@ -1,0 +1,97 @@
+@model QueryBuilder.Web.Models.Queries.QueryEditViewModel
+
+<div class="mb-3">
+    <label asp-for="Name" class="form-label"></label>
+    <input asp-for="Name" class="form-control" />
+    <span asp-validation-for="Name" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Description" class="form-label"></label>
+    <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+    <span asp-validation-for="Description" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="DataSourceId" class="form-label"></label>
+    <select asp-for="DataSourceId" class="form-select" asp-items="ViewBag.DataSources"></select>
+    <span asp-validation-for="DataSourceId" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="SqlText" class="form-label"></label>
+    <textarea asp-for="SqlText" class="form-control font-monospace" rows="8"></textarea>
+    <span asp-validation-for="SqlText" class="text-danger"></span>
+    <div class="form-text">MVP supports SELECT queries only.</div>
+</div>
+
+<div class="d-flex gap-2 mb-4">
+    <button class="btn btn-outline-primary" type="submit" name="SubmitAction" value="run">Run</button>
+    <button class="btn btn-success" type="submit" name="SubmitAction" value="save">Save</button>
+    <a class="btn btn-link" asp-action="Index">Back</a>
+</div>
+
+@if (Model.Result != null)
+{
+    if (Model.Result.Success)
+    {
+        <div class="alert alert-success">
+            Query executed in @Model.Result.DurationMs ms. Rows returned: @Model.Result.RowCount.
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">
+            @Model.Result.ErrorMessage
+        </div>
+    }
+
+    if (Model.Result.Success)
+    {
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <h2 class="h5 mb-0">Results</h2>
+            @if (Model.Id.HasValue)
+            {
+                <a class="btn btn-sm btn-outline-primary" asp-controller="Visualizations" asp-action="Create" asp-route-queryId="@Model.Id">New Visualization</a>
+            }
+            else
+            {
+                <button class="btn btn-sm btn-outline-secondary" type="button" disabled>New Visualization</button>
+            }
+        </div>
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead>
+                    <tr>
+                        @foreach (var column in Model.Result.Columns)
+                        {
+                            <th>@column</th>
+                        }
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Result.Rows.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="@Model.Result.Columns.Count" class="text-muted">No rows returned.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var row in Model.Result.Rows)
+                        {
+                            <tr>
+                                @foreach (var cell in row)
+                                {
+                                    <td>@cell</td>
+                                }
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
