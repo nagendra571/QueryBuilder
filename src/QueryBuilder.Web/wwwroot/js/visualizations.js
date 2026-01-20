@@ -13,16 +13,28 @@
     return Number.isFinite(num) ? num : null;
   };
 
-  const palette = [
-    "#2563eb",
-    "#16a34a",
-    "#f59e0b",
-    "#ef4444",
-    "#8b5cf6",
-    "#14b8a6",
-    "#f97316",
-    "#0ea5e9"
-  ];
+  const getChartColors = () => {
+    const style = getComputedStyle(document.documentElement);
+    const colors = [];
+    for (let i = 1; i <= 8; i++) {
+      const color = style.getPropertyValue(`--chart-color-${i}`).trim();
+      if (color) {
+        colors.push(color);
+      }
+    }
+    return colors.length > 0 ? colors : [
+      "#2563eb",
+      "#16a34a",
+      "#f59e0b",
+      "#ef4444",
+      "#8b5cf6",
+      "#14b8a6",
+      "#f97316",
+      "#0ea5e9"
+    ];
+  };
+
+  const palette = getChartColors();
 
   const buildSeries = (config) => {
     const { rows, index } = mapRows(config.columns || [], config.rows || []);
@@ -41,7 +53,7 @@
         labels.push(row[labelIndex] ?? "");
         data.push(toNumber(row[valueIndex]) ?? 0);
       });
-      return { labels, datasets: [{ label: config.valueColumn || "Value", data }] };
+      return { labels, datasets: [{ label: config.valueColumn || "Value", data, backgroundColor: palette }] };
     }
 
     if (config.type === "Line" || config.type === "Bar") {
@@ -58,7 +70,7 @@
           data,
           borderColor: palette[i % palette.length],
           backgroundColor: config.type === "Bar"
-            ? palette[i % palette.length] + "55"
+            ? palette[i % palette.length]
             : palette[i % palette.length] + "33"
         };
       });

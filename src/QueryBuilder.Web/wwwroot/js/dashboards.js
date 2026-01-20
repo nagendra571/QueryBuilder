@@ -9,7 +9,24 @@
   const saveBtn = document.getElementById("saveLayoutBtn");
   const tokenInput = document.querySelector("input[name='__RequestVerificationToken']");
 
+  const checkEmpty = () => {
+    if (grid.engine.nodes.length === 0) {
+      gridEl.classList.add("grid-stack-empty");
+      gridEl.innerHTML = `
+        <div class="text-center text-muted p-5">
+            <i class="bi bi-kanban" style="font-size: 3rem;"></i>
+            <p class="mt-3">This dashboard is empty. Add a visualization to get started.</p>
+        </div>
+      `;
+    } else {
+      gridEl.classList.remove("grid-stack-empty");
+      const emptyEl = gridEl.querySelector(".text-center");
+      if(emptyEl) emptyEl.remove();
+    }
+  };
+
   const addWidget = (widget) => {
+    checkEmpty();
     const content = document.createElement("div");
     content.className = "grid-stack-item-content dashboard-widget";
     const header = document.createElement("div");
@@ -62,6 +79,7 @@
       removeButton.addEventListener("click", (event) => {
         event.preventDefault();
         grid.removeWidget(item);
+        checkEmpty();
       });
     }
   };
@@ -76,6 +94,8 @@
     width: w.width,
     height: w.height
   }));
+
+  checkEmpty();
 
   addBtn?.addEventListener("click", () => {
     const selectedId = Number(select.value);

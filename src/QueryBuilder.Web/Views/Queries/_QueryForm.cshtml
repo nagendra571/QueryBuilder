@@ -4,29 +4,8 @@
     var statusText = Model.Id.HasValue ? "Saved" : "Draft";
 }
 
-<div class="query-header">
-    <div class="query-title">
-        <input asp-for="Name" class="form-control form-control-lg query-title-input" placeholder="Untitled query" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-        <input asp-for="Description" class="form-control query-description-input" placeholder="Add a description" />
-        <span asp-validation-for="Description" class="text-danger"></span>
-    </div>
-    <div class="query-toolbar">
-        <span class="badge text-bg-light border query-status">@statusText</span>
-        <div class="btn-group">
-            <button class="btn btn-primary" type="submit" name="SubmitAction" value="run">Execute</button>
-            <button class="btn btn-outline-secondary" type="submit" name="SubmitAction" value="save">Save</button>
-        </div>
-        <div class="form-check form-switch query-toggle">
-            <input class="form-check-input" type="checkbox" id="showDataOnlyToggle" />
-            <label class="form-check-label" for="showDataOnlyToggle">Show data only</label>
-        </div>
-        <a class="btn btn-link query-back" asp-action="Index">Back</a>
-    </div>
-</div>
-
-<div class="query-editor-body" id="queryEditorBody">
-    <div class="query-layout">
+<div class="query-editor-container">
+    <div class="query-editor-sidebar">
         <div class="query-schema-panel">
             <div class="mb-3">
                 <label asp-for="DataSourceId" class="form-label"></label>
@@ -41,116 +20,134 @@
                 <div class="list-group-item text-muted">Select a data source to load tables.</div>
             </div>
         </div>
+    </div>
+    <div class="query-editor-main">
+        <div class="query-header">
+            <div class="query-title">
+                <input asp-for="Name" class="form-control form-control-lg query-title-input" placeholder="Untitled query" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+                <input asp-for="Description" class="form-control query-description-input" placeholder="Add a description" />
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            <div class="query-toolbar">
+                <span class="badge text-bg-light border query-status">@statusText</span>
+                <div class="btn-group">
+                    <button class="btn btn-primary" type="submit" name="SubmitAction" value="run">Execute</button>
+                    <button class="btn btn-outline-secondary" type="submit" name="SubmitAction" value="save">Save</button>
+                </div>
+            </div>
+        </div>
 
         <div class="query-editor-panel">
             <div class="mb-3">
-                <label asp-for="SqlText" class="form-label"></label>
-                <div class="sql-editor">
-                    <pre class="sql-gutter" id="sqlLineNumbers">1</pre>
+                <label asp-for="SqlText" class="form-label visually-hidden"></label>
+                <div class="sql-editor-wrapper">
                     <textarea asp-for="SqlText" class="form-control font-monospace sql-editor-input" rows="11" placeholder="Write your SQL here..."></textarea>
                 </div>
                 <span asp-validation-for="SqlText" class="text-danger"></span>
                 <div class="form-text">MVP supports SELECT queries only.</div>
             </div>
         </div>
-    </div>
-</div>
 
-@if (Model.Result != null)
-{
-    if (Model.Result.Success)
-    {
-        <div class="alert alert-success">
-            Query executed in @Model.Result.DurationMs ms. Rows returned: @Model.Result.RowCount.
-        </div>
-    }
-    else
-    {
-        <div class="alert alert-danger">
-            @Model.Result.ErrorMessage
-        </div>
-    }
+        @if (Model.Result != null)
+        {
+            if (Model.Result.Success)
+            {
+                <div class="alert alert-success mt-3">
+                    Query executed in @Model.Result.DurationMs ms. Rows returned: @Model.Result.RowCount.
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-danger mt-3">
+                    @Model.Result.ErrorMessage
+                </div>
+            }
 
-    if (Model.Result.Success)
-    {
-        <div class="results-card card">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <ul class="nav nav-tabs card-header-tabs" id="resultsTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="tab-table" data-bs-toggle="tab" data-bs-target="#tabTablePane" type="button" role="tab">Table</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="tab-viz" data-bs-toggle="tab" data-bs-target="#tabVizPane" type="button" role="tab">Visualizations</button>
-                    </li>
-                </ul>
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-sm btn-outline-secondary" type="button" id="downloadCsvBtn">Download CSV</button>
-                    @if (Model.Id.HasValue)
-                    {
-                        <a class="btn btn-sm btn-outline-primary" asp-controller="Visualizations" asp-action="Create" asp-route-queryId="@Model.Id">+ New Visualization</a>
-                    }
-                </div>
-            </div>
-            <div class="card-body tab-content">
-                <div class="tab-pane fade show active" id="tabTablePane" role="tabpanel">
-                    <div class="table-responsive">
-                        <table class="table table-sm mb-0">
-                            <thead>
-                            <tr>
-                                @foreach (var column in Model.Result.Columns)
-                                {
-                                    <th>@column</th>
-                                }
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @if (Model.Result.Rows.Count == 0)
+            if (Model.Result.Success)
+            {
+                <div class="results-card card mt-3">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <ul class="nav nav-tabs card-header-tabs" id="resultsTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="tab-table" data-bs-toggle="tab" data-bs-target="#tabTablePane" type="button" role="tab">Table</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="tab-viz" data-bs-toggle="tab" data-bs-target="#tabVizPane" type="button" role="tab">Visualizations</button>
+                            </li>
+                        </ul>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" id="downloadCsvBtn">Download CSV</button>
+                            @if (Model.Id.HasValue)
                             {
-                                <tr>
-                                    <td colspan="@Model.Result.Columns.Count" class="text-muted">No rows returned.</td>
-                                </tr>
-                            }
-                            else
-                            {
-                                foreach (var row in Model.Result.Rows)
-                                {
-                                    <tr>
-                                        @foreach (var cell in row)
-                                        {
-                                            <td>@cell</td>
-                                        }
-                                    </tr>
-                                }
-                            }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="tab-pane fade" id="tabVizPane" role="tabpanel">
-                    @if (Model.Visualizations.Count == 0)
-                    {
-                        <div class="text-muted">No visualizations yet. Create one to see it here.</div>
-                    }
-                    else
-                    {
-                        <div class="list-group">
-                            @foreach (var viz in Model.Visualizations)
-                            {
-                                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                                   asp-controller="Visualizations"
-                                   asp-action="Details"
-                                   asp-route-id="@viz.Id">
-                                    <span>@viz.Name</span>
-                                    <span class="badge text-bg-secondary">@viz.Type</span>
+                                <a class="btn btn-primary" asp-controller="Visualizations" asp-action="Create" asp-route-queryId="@Model.Id">
+                                    <i class="bi bi-plus-circle"></i> New Visualization
                                 </a>
                             }
                         </div>
-                    }
+                    </div>
+                    <div class="card-body tab-content">
+                        <div class="tab-pane fade show active" id="tabTablePane" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped table-hover mb-0">
+                                    <thead class="sticky-top bg-light">
+                                    <tr>
+                                        @foreach (var column in Model.Result.Columns)
+                                        {
+                                            <th>@column</th>
+                                        }
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    @if (Model.Result.Rows.Count == 0)
+                                    {
+                                        <tr>
+                                            <td colspan="@Model.Result.Columns.Count" class="text-muted text-center">No rows returned.</td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        foreach (var row in Model.Result.Rows)
+                                        {
+                                            <tr>
+                                                @foreach (var cell in row)
+                                                {
+                                                    <td>@cell</td>
+                                                }
+                                            </tr>
+                                        }
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="tabVizPane" role="tabpanel">
+                            @if (Model.Visualizations.Count == 0)
+                            {
+                                <div class="text-muted text-center">No visualizations yet. Create one to see it here.</div>
+                            }
+                            else
+                            {
+                                <div class="list-group">
+                                    @foreach (var viz in Model.Visualizations)
+                                    {
+                                        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                           asp-controller="Visualizations"
+                                           asp-action="Details"
+                                           asp-route-id="@viz.Id">
+                                            <span>@viz.Name</span>
+                                            <span class="badge text-bg-secondary">@viz.Type</span>
+                                        </a>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    }
-}
+            }
+        }
+    </div>
+</div>
 
 <script>
     (() => {
@@ -458,3 +455,4 @@
         });
     }
 </script>
+
