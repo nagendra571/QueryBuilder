@@ -11,17 +11,26 @@
 
   const addWidget = (widget) => {
     const content = document.createElement("div");
-    content.className = "grid-stack-item-content card";
-    const body = document.createElement("div");
-    body.className = "card-body";
+    content.className = "grid-stack-item-content dashboard-widget";
+    const header = document.createElement("div");
+    header.className = "dashboard-widget-header";
     const title = document.createElement("div");
-    title.className = "fw-semibold";
+    title.className = "dashboard-widget-title";
     title.textContent = widget.visualizationName;
-    const meta = document.createElement("div");
-    meta.className = "text-muted small";
+    const meta = document.createElement("span");
+    meta.className = "badge bg-light text-dark border";
     meta.textContent = widget.visualizationType;
-    body.appendChild(title);
-    body.appendChild(meta);
+    header.appendChild(title);
+    header.appendChild(meta);
+
+    const body = document.createElement("div");
+    body.className = "dashboard-widget-body";
+    const hint = document.createElement("div");
+    hint.className = "dashboard-widget-hint";
+    hint.textContent = "Drag to reposition · Resize from edges";
+    body.appendChild(hint);
+
+    content.appendChild(header);
     content.appendChild(body);
 
     const item = grid.addWidget({

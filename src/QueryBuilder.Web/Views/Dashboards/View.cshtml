@@ -5,18 +5,20 @@
     ViewData["Title"] = Model.Dashboard.Name;
 }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <div>
-        <h1 class="h3 mb-0">@Model.Dashboard.Name</h1>
-        <div class="text-muted">@Model.Dashboard.Description</div>
+<div class="dashboard-page dashboard-view">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="h3 mb-0">@Model.Dashboard.Name</h1>
+            <div class="text-muted">@Model.Dashboard.Description</div>
+        </div>
+        @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
+        {
+            <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@Model.Dashboard.Id">Edit</a>
+        }
     </div>
-    @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
-    {
-        <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@Model.Dashboard.Id">Edit</a>
-    }
-</div>
 
-<div class="grid-stack"></div>
+    <div class="grid-stack dashboard-grid"></div>
+</div>
 
 @section Scripts {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack.min.css" />
@@ -54,17 +56,24 @@
         const grid = GridStack.init({ staticGrid: true, margin: 8, cellHeight: 80, float: true });
         widgets.forEach(widget => {
             const content = document.createElement('div');
-            content.className = 'grid-stack-item-content card';
-            const body = document.createElement('div');
-            body.className = 'card-body';
+            content.className = 'grid-stack-item-content dashboard-widget';
+            const header = document.createElement('div');
+            header.className = 'dashboard-widget-header';
             const title = document.createElement('div');
-            title.className = 'fw-semibold mb-2';
+            title.className = 'dashboard-widget-title';
             title.textContent = widget.visualizationName;
-            body.appendChild(title);
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-light text-dark border';
+            badge.textContent = widget.visualizationType;
+            header.appendChild(title);
+            header.appendChild(badge);
+
+            const body = document.createElement('div');
+            body.className = 'dashboard-widget-body';
 
             if (widget.visualizationType === "Table") {
                 const table = document.createElement('table');
-                table.className = 'table table-sm';
+                table.className = 'table table-sm table-hover mb-0';
                 const thead = document.createElement('thead');
                 const headRow = document.createElement('tr');
                 widget.columns.forEach(col => {
@@ -102,6 +111,7 @@
                 });
             }
 
+            content.appendChild(header);
             content.appendChild(body);
             grid.addWidget({ w: widget.w, h: widget.h, x: widget.x, y: widget.y, content: content.outerHTML });
         });

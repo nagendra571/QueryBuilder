@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap");
+
 html {
   font-size: 14px;
 }
@@ -21,17 +23,181 @@ body {
   margin-bottom: 60px;
 }
 
+.dashboard-page {
+  --dashboard-bg: #f5f7fb;
+  --dashboard-panel: #ffffff;
+  --dashboard-border: #dde3ee;
+  --dashboard-accent: #1f6feb;
+  --dashboard-text: #0f172a;
+  background: radial-gradient(circle at 20% 0%, #eef3ff 0%, #f8fafc 35%, #f5f7fb 100%);
+  border-radius: 16px;
+  padding: 16px;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  color: var(--dashboard-text);
+}
+
+.dashboard-panel {
+  border: 1px solid var(--dashboard-border);
+  box-shadow: 0 12px 30px -24px rgba(15, 23, 42, 0.6);
+}
+
+.dashboard-grid {
+  min-height: 520px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.04) 0%, rgba(15, 23, 42, 0.02) 100%);
+  border: 1px dashed rgba(15, 23, 42, 0.1);
+  border-radius: 16px;
+  padding: 8px;
+}
+
+.dashboard-widget {
+  border: 1px solid var(--dashboard-border);
+  border-radius: 14px;
+  background: var(--dashboard-panel);
+  box-shadow: 0 18px 40px -32px rgba(15, 23, 42, 0.55);
+  overflow: hidden;
+  height: 100%;
+}
+
+.dashboard-widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--dashboard-border);
+  background: linear-gradient(135deg, #ffffff 0%, #f2f5fb 100%);
+}
+
+.dashboard-widget-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.dashboard-widget-body {
+  padding: 12px 14px 16px;
+  height: calc(100% - 46px);
+  position: relative;
+}
+
+.dashboard-widget-hint {
+  font-size: 0.75rem;
+  color: rgba(15, 23, 42, 0.55);
+}
+
+.dashboard-edit .grid-stack-item-content {
+  height: 100%;
+}
+
+.dashboard-edit .dashboard-widget-body::after {
+  content: "";
+  position: absolute;
+  inset: 36px 0 0 0;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.02));
+  border-radius: 12px;
+}
+
+.dashboard-edit .dashboard-widget-hint {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-index .list-group-item.active {
+  background-color: var(--dashboard-accent);
+  border-color: var(--dashboard-accent);
+}
+
+.dashboard-index .list-group-item {
+  border-color: var(--dashboard-border);
+}
+
+.dashboard-index .table > :not(caption) > * > * {
+  border-color: var(--dashboard-border);
+}
+
+.dashboard-page .btn-primary {
+  background-color: var(--dashboard-accent);
+  border-color: var(--dashboard-accent);
+}
+
+.dashboard-page .btn-outline-primary {
+  border-color: var(--dashboard-accent);
+  color: var(--dashboard-accent);
+}
+
+.dashboard-page .btn-outline-primary:hover {
+  background-color: var(--dashboard-accent);
+  color: #ffffff;
+}
+
 .sidebar {
   min-height: calc(100vh - 56px);
+  background: linear-gradient(180deg, #ffffff 0%, #f3f5f9 100%);
+  padding: 0.5rem 0.75rem 0.75rem;
 }
 
 .sidebar .nav-link {
   color: #343a40;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .sidebar .nav-link.active,
 .sidebar .nav-link:hover {
   color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.12);
+}
+
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px);
+  gap: 0.75rem;
+}
+
+.sidebar-icon {
+  font-size: 1.1rem;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+}
+
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+body.sidebar-collapsed .sidebar {
+  padding: 0.5rem 0.35rem;
+}
+
+body.sidebar-collapsed .sidebar .sidebar-label,
+body.sidebar-collapsed .sidebar .nav-item.text-uppercase {
+  display: none;
+}
+
+body.sidebar-collapsed .sidebar .nav-link {
+  justify-content: center;
+}
+
+body.sidebar-collapsed .sidebar-toggle {
+  justify-content: center;
+}
+
+body.sidebar-collapsed .sidebar {
+  flex: 0 0 72px;
+  max-width: 72px;
+}
+
+body.sidebar-collapsed .main-content {
+  flex: 1 0 calc(100% - 72px);
+  max-width: calc(100% - 72px);
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
