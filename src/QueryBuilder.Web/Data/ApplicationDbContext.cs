@@ -20,6 +20,7 @@ public class ApplicationDbContext : IdentityDbContext
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<Share> Shares => Set<Share>();
+    public DbSet<PublicShare> PublicShares => Set<PublicShare>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -40,6 +41,13 @@ public class ApplicationDbContext : IdentityDbContext
             entity.HasIndex(s => new { s.EntityType, s.EntityId });
             entity.HasIndex(s => s.UserId);
             entity.HasIndex(s => s.GroupId);
+        });
+
+        builder.Entity<PublicShare>(entity =>
+        {
+            entity.Property(s => s.Token).HasMaxLength(200);
+            entity.HasIndex(s => s.Token).IsUnique();
+            entity.HasIndex(s => new { s.EntityType, s.EntityId });
         });
     }
 }

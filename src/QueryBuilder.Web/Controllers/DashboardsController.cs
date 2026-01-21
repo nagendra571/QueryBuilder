@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using QueryBuilder.Domain.Entities;
 using QueryBuilder.Web.Data;
 using QueryBuilder.Web.Models.Dashboards;
+using QueryBuilder.Web.Models.PublicShares;
 using QueryBuilder.Web.Models.Sharing;
 using QueryBuilder.Web.Models.Visualizations;
 using QueryBuilder.Web.Services;
@@ -20,17 +21,20 @@ public class DashboardsController : Controller
     private readonly QueryRunner _queryRunner;
     private readonly PermissionService _permissionService;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly PublicShareService _publicShareService;
 
     public DashboardsController(
         ApplicationDbContext dbContext,
         QueryRunner queryRunner,
         PermissionService permissionService,
-        UserManager<IdentityUser> userManager)
+        UserManager<IdentityUser> userManager,
+        PublicShareService publicShareService)
     {
         _dbContext = dbContext;
         _queryRunner = queryRunner;
         _permissionService = permissionService;
         _userManager = userManager;
+        _publicShareService = publicShareService;
     }
 
     public async Task<IActionResult> Index()
@@ -241,10 +245,14 @@ public class DashboardsController : Controller
             });
         }
 
+        var share = await _publicShareService.GetActiveShareAsync(PublicShareEntityType.Dashboard, id);
         return View(new DashboardViewModel
         {
             Dashboard = dashboard,
-            Widgets = viewWidgets
+            Widgets = viewWidgets,
+            PublicShareToken = share?.Token,
+            PublicShareEnabled = share?.IsEnabled ?? false,
+            PublicShareExpiresAt = share?.ExpiresAt
         });
     }
 
@@ -309,6 +317,66 @@ public class DashboardsController : Controller
         await _dbContext.SaveChangesAsync();
 
         return RedirectToAction(nameof(Edit), new { id });
+    }
+
+    [HttpPost("dashboards/{id}/share/enable")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> EnablePublicShare(int id, PublicShareSettingsInputModel model)
+    {
+        if (!await _dbContext.Dashboards.AnyAsync(d => d.Id == id))
+        {
+            return NotFound();
+        }
+
+        var userId = _userManager.GetUserId(User) ?? string.Empty;
+        var share = await _publicShareService.EnableAsync(PublicShareEntityType.Dashboard, id, userId, model.ExpiresAt);
+        return Ok(new PublicShareResponseModel(share));
+    }
+
+    [HttpPost("dashboards/{id}/share/disable")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> DisablePublicShare(int id)
+    {
+        if (!await _dbContext.Dashboards.AnyAsync(d => d.Id == id))
+        {
+            return NotFound();
+        }
+
+        var userId = _userManager.GetUserId(User) ?? string.Empty;
+        var share = await _publicShareService.DisableAsync(PublicShareEntityType.Dashboard, id, userId);
+        return Ok(new PublicShareResponseModel(share));
+    }
+
+    [HttpPost("dashboards/{id}/share/regenerate")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> RegeneratePublicShare(int id, PublicShareSettingsInputModel model)
+    {
+        if (!await _dbContext.Dashboards.AnyAsync(d => d.Id == id))
+        {
+            return NotFound();
+        }
+
+        var userId = _userManager.GetUserId(User) ?? string.Empty;
+        var share = await _publicShareService.RegenerateAsync(PublicShareEntityType.Dashboard, id, userId, model.ExpiresAt);
+        return Ok(new PublicShareResponseModel(share));
+    }
+
+    [HttpPost("dashboards/{id}/share/set-expiration")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> SetPublicShareExpiration(int id, PublicShareSettingsInputModel model)
+    {
+        if (!await _dbContext.Dashboards.AnyAsync(d => d.Id == id))
+        {
+            return NotFound();
+        }
+
+        var userId = _userManager.GetUserId(User) ?? string.Empty;
+        var share = await _publicShareService.SetExpirationAsync(PublicShareEntityType.Dashboard, id, model.ExpiresAt, userId);
+        return Ok(new PublicShareResponseModel(share));
     }
 
     private async Task<ShareSectionViewModel> BuildShareSectionAsync(ShareEntityType entityType, int entityId)
