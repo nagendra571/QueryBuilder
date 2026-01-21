@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
 using QueryBuilder.Domain.Entities;
 using QueryBuilder.Web.Controllers;
 using QueryBuilder.Web.Services;
@@ -83,7 +84,7 @@ public class PublicControllerTests
 
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var publicShareService = new PublicShareService(dbContext);
-        var controller = new PublicController(dbContext, queryRunner, publicShareService);
+        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance);
 
         var result = await controller.Dashboard("valid-token");
 
@@ -97,7 +98,7 @@ public class PublicControllerTests
         var dataProtectionProvider = DataProtectionProvider.Create("QueryBuilder.Tests");
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var publicShareService = new PublicShareService(dbContext);
-        var controller = new PublicController(dbContext, queryRunner, publicShareService);
+        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance);
 
         var result = await controller.Dashboard("missing-token");
 
@@ -123,7 +124,7 @@ public class PublicControllerTests
         var dataProtectionProvider = DataProtectionProvider.Create("QueryBuilder.Tests");
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var publicShareService = new PublicShareService(dbContext);
-        var controller = new PublicController(dbContext, queryRunner, publicShareService);
+        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance);
 
         var result = await controller.EmbedDashboard("disabled-token");
 

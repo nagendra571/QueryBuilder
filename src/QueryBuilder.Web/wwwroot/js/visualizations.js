@@ -79,7 +79,18 @@
     const series = buildSeries(config);
     const chartType = config.type === "Line" ? "line" : config.type === "Pie" ? "pie" : "bar";
 
-    new Chart(canvas, {
+    window.queryBuilderViz = window.queryBuilderViz || {};
+    window.queryBuilderViz.instances = window.queryBuilderViz.instances || {};
+    const existing = window.queryBuilderViz.instances[canvasId];
+    if (existing) {
+      existing.data.labels = series.labels;
+      existing.data.datasets = series.datasets;
+      existing.options.plugins.legend.display = config.showLegend !== false;
+      existing.update();
+      return;
+    }
+
+    const chart = new Chart(canvas, {
       type: chartType,
       data: {
         labels: series.labels,
@@ -101,7 +112,11 @@
             }
       }
     });
+    window.queryBuilderViz.instances[canvasId] = chart;
   };
+
+  window.queryBuilderViz = window.queryBuilderViz || {};
+  window.queryBuilderViz.renderChart = renderChart;
 
   if (window.queryBuilderViz?.preview) {
     renderChart("vizPreview", window.queryBuilderViz.preview);

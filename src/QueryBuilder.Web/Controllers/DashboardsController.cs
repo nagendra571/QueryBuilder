@@ -22,19 +22,22 @@ public class DashboardsController : Controller
     private readonly PermissionService _permissionService;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly PublicShareService _publicShareService;
+    private readonly ILogger<DashboardsController> _logger;
 
     public DashboardsController(
         ApplicationDbContext dbContext,
         QueryRunner queryRunner,
         PermissionService permissionService,
         UserManager<IdentityUser> userManager,
-        PublicShareService publicShareService)
+        PublicShareService publicShareService,
+        ILogger<DashboardsController> logger)
     {
         _dbContext = dbContext;
         _queryRunner = queryRunner;
         _permissionService = permissionService;
         _userManager = userManager;
         _publicShareService = publicShareService;
+        _logger = logger;
     }
 
     public async Task<IActionResult> Index()
@@ -253,6 +256,45 @@ public class DashboardsController : Controller
             PublicShareToken = share?.Token,
             PublicShareEnabled = share?.IsEnabled ?? false,
             PublicShareExpiresAt = share?.ExpiresAt
+        });
+    }
+
+    [HttpGet("/dashboards/data/{dashboardId}/widgets/{widgetId}")]
+    public async Task<IActionResult> WidgetData(int dashboardId, int widgetId)
+    {
+        if (!await _permissionService.CanViewDashboardAsync(User, dashboardId))
+        {
+            return Forbid();
+        }
+
+        var widget = await _dbContext.DashboardWidgets
+            .AsNoTracking()
+            .Include(w => w.Visualization)
+            .ThenInclude(v => v!.Query)
+            .FirstOrDefaultAsync(w => w.Id == widgetId && w.DashboardId == dashboardId);
+
+        if (widget?.Visualization?.Query == null)
+        {
+            return NotFound();
+        }
+
+        _logger.LogInformation("Auto-refresh widget {WidgetId} on dashboard {DashboardId} by {UserId}", widgetId, dashboardId, _userManager.GetUserId(User));
+
+        var result = await _queryRunner.RunAsync(widget.Visualization.Query.DataSourceId, widget.Visualization.Query.SqlText);
+        if (!result.Success)
+        {
+            return Ok(new
+            {
+                success = false,
+                errorMessage = result.ErrorMessage ?? "Refresh failed."
+            });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            columns = result.Columns,
+            rows = result.Rows
         });
     }
 

@@ -15,6 +15,8 @@ public class Visualization
     public string Name { get; set; } = string.Empty;
     public VisualizationType Type { get; set; } = VisualizationType.Table;
     public string ConfigJson { get; set; } = "{}";
+    public bool IsAutoRefreshEnabled { get; set; }
+    public int? AutoRefreshIntervalSeconds { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
