@@ -50,6 +50,8 @@
                 visualizationId: @widget.Visualization.Id,
                 visualizationName: "@widget.Visualization.Name",
                 visualizationType: "@widget.Visualization.Type",
+                autoRefreshEnabled: @widget.Visualization.IsAutoRefreshEnabled.ToString().ToLowerInvariant(),
+                autoRefreshInterval: @(widget.Visualization.AutoRefreshIntervalSeconds ?? 0),
                 columns: @Html.Raw(colsJson),
                 rows: @Html.Raw(rowsJson),
                 xColumn: "@(widget.Config.XColumn ?? string.Empty)",
@@ -69,6 +71,9 @@
         widgets.forEach(widget => {
             const content = document.createElement('div');
             content.className = 'grid-stack-item-content dashboard-widget';
+            content.dataset.widgetId = widget.id;
+            content.dataset.visualizationId = widget.visualizationId;
+            content.dataset.visualizationType = widget.visualizationType;
             const header = document.createElement('div');
             header.className = 'dashboard-widget-header';
             const title = document.createElement('div');
@@ -78,6 +83,7 @@
 
             const body = document.createElement('div');
             body.className = 'dashboard-widget-body';
+            body.dataset.widgetBody = widget.id;
 
             if (widget.visualizationType === "Table") {
                 const table = document.createElement('table');
@@ -127,5 +133,21 @@
         });
     </script>
     <script src="~/js/visualizations.js" asp-append-version="true"></script>
+    <script>
+        const publicToken = "@Context.Request.RouteValues["token"]";
+        window.autoRefreshConfig = {
+            mode: "public-embed",
+            token: publicToken,
+            widgets: widgets.map(widget => ({
+                widgetId: widget.id,
+                visualizationId: widget.visualizationId,
+                visualizationType: widget.visualizationType,
+                autoRefreshEnabled: widget.autoRefreshEnabled,
+                autoRefreshInterval: widget.autoRefreshInterval,
+                endpoint: `/public/data/d/${publicToken}/w/${widget.id}`
+            }))
+        };
+    </script>
+    <script src="~/js/auto-refresh.js" asp-append-version="true"></script>
 </body>
 </html>

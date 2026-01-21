@@ -15,11 +15,17 @@ public class VisualizationsController : Controller
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly QueryRunner _queryRunner;
+    private readonly ILogger<VisualizationsController> _logger;
+    private static readonly HashSet<int> AllowedRefreshIntervals = new()
+    {
+        30, 60, 300, 600, 1800, 3600
+    };
 
-    public VisualizationsController(ApplicationDbContext dbContext, QueryRunner queryRunner)
+    public VisualizationsController(ApplicationDbContext dbContext, QueryRunner queryRunner, ILogger<VisualizationsController> logger)
     {
         _dbContext = dbContext;
         _queryRunner = queryRunner;
+        _logger = logger;
     }
 
     public async Task<IActionResult> Create(int queryId)
@@ -36,7 +42,9 @@ public class VisualizationsController : Controller
             QueryId = query.Id,
             Name = $"{query.Name} Chart",
             Columns = result.Columns,
-            ShowLegend = true
+            ShowLegend = true,
+            IsAutoRefreshEnabled = false,
+            AutoRefreshIntervalSeconds = null
         };
 
         ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
@@ -68,6 +76,15 @@ public class VisualizationsController : Controller
             return View(model);
         }
 
+        if (model.IsAutoRefreshEnabled && model.AutoRefreshIntervalSeconds == null)
+        {
+            ModelState.AddModelError(nameof(model.AutoRefreshIntervalSeconds), "Refresh interval is required.");
+        }
+        else if (model.IsAutoRefreshEnabled && !AllowedRefreshIntervals.Contains(model.AutoRefreshIntervalSeconds.Value))
+        {
+            ModelState.AddModelError(nameof(model.AutoRefreshIntervalSeconds), "Refresh interval is not supported.");
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -90,6 +107,8 @@ public class VisualizationsController : Controller
             Name = model.Name.Trim(),
             Type = model.Type,
             ConfigJson = JsonSerializer.Serialize(config),
+            IsAutoRefreshEnabled = model.IsAutoRefreshEnabled,
+            AutoRefreshIntervalSeconds = model.IsAutoRefreshEnabled ? model.AutoRefreshIntervalSeconds : null,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
@@ -125,7 +144,9 @@ public class VisualizationsController : Controller
             ValueColumn = config.ValueColumn,
             GroupByColumn = config.GroupByColumn,
             ShowLegend = config.ShowLegend,
-            Columns = result.Columns
+            Columns = result.Columns,
+            IsAutoRefreshEnabled = visualization.IsAutoRefreshEnabled,
+            AutoRefreshIntervalSeconds = visualization.AutoRefreshIntervalSeconds
         };
 
         ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
@@ -165,6 +186,15 @@ public class VisualizationsController : Controller
             return View("Create", model);
         }
 
+        if (model.IsAutoRefreshEnabled && model.AutoRefreshIntervalSeconds == null)
+        {
+            ModelState.AddModelError(nameof(model.AutoRefreshIntervalSeconds), "Refresh interval is required.");
+        }
+        else if (model.IsAutoRefreshEnabled && !AllowedRefreshIntervals.Contains(model.AutoRefreshIntervalSeconds.Value))
+        {
+            ModelState.AddModelError(nameof(model.AutoRefreshIntervalSeconds), "Refresh interval is not supported.");
+        }
+
         if (!ModelState.IsValid)
         {
             return View("Create", model);
@@ -184,6 +214,8 @@ public class VisualizationsController : Controller
         visualization.Name = model.Name.Trim();
         visualization.Type = model.Type;
         visualization.ConfigJson = JsonSerializer.Serialize(config);
+        visualization.IsAutoRefreshEnabled = model.IsAutoRefreshEnabled;
+        visualization.AutoRefreshIntervalSeconds = model.IsAutoRefreshEnabled ? model.AutoRefreshIntervalSeconds : null;
         visualization.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _dbContext.SaveChangesAsync();
@@ -212,5 +244,35 @@ public class VisualizationsController : Controller
         };
 
         return View(model);
+    }
+
+    [HttpGet("/visualizations/data/{id}")]
+    public async Task<IActionResult> Data(int id)
+    {
+        var visualization = await _dbContext.Visualizations
+            .Include(v => v.Query)
+            .FirstOrDefaultAsync(v => v.Id == id);
+        if (visualization == null || visualization.Query == null)
+        {
+            return NotFound();
+        }
+
+        _logger.LogInformation("Auto-refresh visualization {VisualizationId}", id);
+        var result = await _queryRunner.RunAsync(visualization.Query.DataSourceId, visualization.Query.SqlText);
+        if (!result.Success)
+        {
+            return Ok(new
+            {
+                success = false,
+                errorMessage = result.ErrorMessage ?? "Refresh failed."
+            });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            columns = result.Columns,
+            rows = result.Rows
+        });
     }
 }

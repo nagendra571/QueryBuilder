@@ -52,6 +52,28 @@
                             <input asp-for="ShowLegend" class="form-check-input" />
                             <label asp-for="ShowLegend" class="form-check-label"></label>
                         </div>
+                        <div class="border rounded-3 p-3 bg-light">
+                            <div class="form-check form-switch mb-2">
+                                <input asp-for="IsAutoRefreshEnabled" class="form-check-input" id="autoRefreshToggle" />
+                                <label asp-for="IsAutoRefreshEnabled" class="form-check-label"></label>
+                            </div>
+                            <div class="mb-2">
+                                <label asp-for="AutoRefreshIntervalSeconds" class="form-label"></label>
+                                <select asp-for="AutoRefreshIntervalSeconds" class="form-select" id="autoRefreshInterval">
+                                    <option value="">Select interval</option>
+                                    <option value="30">30 seconds</option>
+                                    <option value="60">1 minute</option>
+                                    <option value="300">5 minutes</option>
+                                    <option value="600">10 minutes</option>
+                                    <option value="1800">30 minutes</option>
+                                    <option value="3600">60 minutes</option>
+                                </select>
+                                <span asp-validation-for="AutoRefreshIntervalSeconds" class="text-danger"></span>
+                            </div>
+                            <div class="form-text text-warning">
+                                Auto refresh may increase system load for complex queries.
+                            </div>
+                        </div>
                     </div>
                     <div class="tab-pane fade" id="vizXAxis" role="tabpanel">
                         <div class="mb-3">
@@ -139,4 +161,18 @@
     <partial name="_ValidationScriptsPartial" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="~/js/visualizations.js" asp-append-version="true"></script>
+    <script>
+        const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+        const autoRefreshInterval = document.getElementById('autoRefreshInterval');
+        if (autoRefreshInterval) {
+            const updateIntervalState = () => {
+                autoRefreshInterval.disabled = !autoRefreshToggle.checked;
+                if (!autoRefreshToggle.checked) {
+                    autoRefreshInterval.value = '';
+                }
+            };
+            updateIntervalState();
+            autoRefreshToggle.addEventListener('change', updateIntervalState);
+        }
+    </script>
 }

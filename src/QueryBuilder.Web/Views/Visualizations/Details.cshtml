@@ -7,12 +7,12 @@
     var columnsJson = JsonSerializer.Serialize(Model.Result.Columns);
 }
 
-<div class="viz-details-header d-flex align-items-center justify-content-between mb-3">
-    <div>
-        <h1 class="h3 mb-0">@Model.Visualization.Name</h1>
-        <div class="text-muted">Query: @Model.QueryName</div>
-    </div>
-    <div class="d-flex gap-2">
+    <div class="viz-details-header d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="h3 mb-0">@Model.Visualization.Name</h1>
+            <div class="text-muted">Query: @Model.QueryName</div>
+        </div>
+        <div class="d-flex gap-2">
         <a class="btn btn-outline-primary" asp-controller="Visualizations" asp-action="Edit" asp-route-id="@Model.Visualization.Id">Edit</a>
         <a class="btn btn-outline-secondary" asp-controller="Queries" asp-action="Edit" asp-route-id="@Model.Visualization.QueryId">Back to Query</a>
     </div>
@@ -26,7 +26,7 @@ else
 {
     @if (Model.Visualization.Type == QueryBuilder.Domain.Entities.VisualizationType.Table)
     {
-        <div class="card viz-card">
+        <div class="card viz-card" id="viz-details-container" data-visualization-id="@Model.Visualization.Id" data-visualization-type="@Model.Visualization.Type">
             <div class="table-responsive">
                 <table class="table table-sm mb-0">
                     <thead>
@@ -63,7 +63,7 @@ else
     }
     else
     {
-        <div class="card viz-card mb-3">
+        <div class="card viz-card mb-3" id="viz-details-container" data-visualization-id="@Model.Visualization.Id" data-visualization-type="@Model.Visualization.Type">
             <div class="card-body">
                 <canvas id="vizChart" height="120"></canvas>
             </div>
@@ -92,4 +92,14 @@ else
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="~/js/visualizations.js" asp-append-version="true"></script>
+    <script>
+        window.autoRefreshConfig = {
+            mode: "visualization",
+            visualizationId: @Model.Visualization.Id,
+            autoRefreshEnabled: @Model.Visualization.IsAutoRefreshEnabled.ToString().ToLowerInvariant(),
+            autoRefreshInterval: @(Model.Visualization.AutoRefreshIntervalSeconds ?? 0),
+            endpoint: `/visualizations/data/@Model.Visualization.Id`
+        };
+    </script>
+    <script src="~/js/auto-refresh.js" asp-append-version="true"></script>
 }

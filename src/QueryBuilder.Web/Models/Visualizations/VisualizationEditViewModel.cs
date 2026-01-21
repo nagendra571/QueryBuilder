@@ -37,6 +37,12 @@ public class VisualizationEditViewModel
     [Display(Name = "Show Legend")]
     public bool ShowLegend { get; set; } = true;
 
+    [Display(Name = "Auto Refresh")]
+    public bool IsAutoRefreshEnabled { get; set; }
+
+    [Display(Name = "Refresh Interval (seconds)")]
+    public int? AutoRefreshIntervalSeconds { get; set; }
+
     public IReadOnlyList<string> Columns { get; set; } = Array.Empty<string>();
     public string? SubmitAction { get; set; }
     public QueryResultViewModel? Result { get; set; }

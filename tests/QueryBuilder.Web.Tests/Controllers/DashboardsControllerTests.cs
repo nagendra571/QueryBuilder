@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
 using QueryBuilder.Domain.Entities;
 using QueryBuilder.Web.Controllers;
 using QueryBuilder.Web.Models.Dashboards;
@@ -29,7 +30,7 @@ public class DashboardsControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var publicShareService = new PublicShareService(dbContext);
 
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("viewer-1", "Viewer"))
@@ -82,7 +83,7 @@ public class DashboardsControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var publicShareService = new PublicShareService(dbContext);
 
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("editor-1", "Editor"))
@@ -141,7 +142,7 @@ public class DashboardsControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var publicShareService = new PublicShareService(dbContext);
 
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("viewer-1", "Viewer"))
@@ -215,7 +216,7 @@ public class DashboardsControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var publicShareService = new PublicShareService(dbContext);
 
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser(userId, "Viewer"))

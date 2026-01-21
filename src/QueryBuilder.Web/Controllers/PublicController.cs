@@ -16,15 +16,18 @@ public class PublicController : Controller
     private readonly ApplicationDbContext _dbContext;
     private readonly QueryRunner _queryRunner;
     private readonly PublicShareService _publicShareService;
+    private readonly ILogger<PublicController> _logger;
 
     public PublicController(
         ApplicationDbContext dbContext,
         QueryRunner queryRunner,
-        PublicShareService publicShareService)
+        PublicShareService publicShareService,
+        ILogger<PublicController> logger)
     {
         _dbContext = dbContext;
         _queryRunner = queryRunner;
         _publicShareService = publicShareService;
+        _logger = logger;
     }
 
     [HttpGet("public/d/{token}")]
@@ -61,6 +64,45 @@ public class PublicController : Controller
         }
 
         return View("DashboardEmbed", model);
+    }
+
+    [HttpGet("public/data/d/{token}/w/{widgetId}")]
+    public async Task<IActionResult> WidgetData(string token, int widgetId)
+    {
+        var share = await _publicShareService.GetValidShareByTokenAsync(PublicShareEntityType.Dashboard, token);
+        if (share == null)
+        {
+            return NotFound();
+        }
+
+        var widget = await _dbContext.DashboardWidgets
+            .AsNoTracking()
+            .Include(w => w.Visualization)
+            .ThenInclude(v => v!.Query)
+            .FirstOrDefaultAsync(w => w.Id == widgetId && w.DashboardId == share.EntityId);
+
+        if (widget?.Visualization?.Query == null)
+        {
+            return NotFound();
+        }
+
+        _logger.LogInformation("Auto-refresh public widget {WidgetId} for dashboard {DashboardId}", widgetId, share.EntityId);
+        var result = await _queryRunner.RunAsync(widget.Visualization.Query.DataSourceId, widget.Visualization.Query.SqlText);
+        if (!result.Success)
+        {
+            return Ok(new
+            {
+                success = false,
+                errorMessage = "Refresh failed."
+            });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            columns = result.Columns,
+            rows = result.Rows
+        });
     }
 
     private async Task<DashboardViewModel?> BuildDashboardViewModelAsync(int dashboardId)
