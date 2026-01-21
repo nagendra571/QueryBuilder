@@ -3,22 +3,14 @@
 
 @{
     ViewData["Title"] = Model.Dashboard.Name;
+    Layout = "_Layout";
 }
 
-<div class="dashboard-page dashboard-view">
+<div class="dashboard-page dashboard-view dashboard-public">
     <div class="dashboard-titlebar">
         <div>
             <h1 class="h3 mb-0">@Model.Dashboard.Name</h1>
             <div class="text-muted">@Model.Dashboard.Description</div>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
-            {
-                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#shareDashboardModal">
-                    <i class="bi bi-share me-1"></i>Share
-                </button>
-                <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@Model.Dashboard.Id">Edit</a>
-            }
         </div>
     </div>
 
@@ -30,11 +22,7 @@
                     <i class="bi bi-grid-3x3-gap"></i>
                 </div>
                 <div class="dashboard-empty-title">This dashboard is empty</div>
-                <div class="dashboard-empty-text">Add a visualization to start telling your story.</div>
-                @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
-                {
-                    <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Dashboard.Id">Add Widgets</a>
-                }
+                <div class="dashboard-empty-text">No widgets available to display.</div>
             </div>
         </div>
     }
@@ -43,70 +31,6 @@
         <div class="grid-stack dashboard-grid"></div>
     }
 </div>
-
-@if (User.IsInRole("Admin") || User.IsInRole("Editor"))
-{
-    <div class="modal fade" id="shareDashboardModal" tabindex="-1" aria-labelledby="shareDashboardLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="shareDashboardLabel">Share dashboard</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-warning small mb-4">
-                        Public links are read-only. Anyone with the link can view this dashboard.
-                    </div>
-
-                    <div class="d-flex flex-column gap-3">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="fw-semibold">Public link</div>
-                                <div class="text-muted small">Enable or disable public sharing.</div>
-                            </div>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="publicShareToggle" @(Model.PublicShareEnabled ? "checked" : "")>
-                                <label class="form-check-label" for="publicShareToggle">Enabled</label>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="form-label">Expiration</label>
-                            <select class="form-select" id="publicShareExpiry">
-                                <option value="">Never</option>
-                                <option value="7">7 days</option>
-                                <option value="30">30 days</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="form-label">Public URL</label>
-                            <div class="input-group">
-                                <input class="form-control" id="publicShareUrl" readonly />
-                                <button class="btn btn-outline-secondary" type="button" data-copy-target="publicShareUrl">Copy</button>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="form-label">Embed snippet</label>
-                            <div class="input-group">
-                                <textarea class="form-control" id="publicShareEmbed" rows="2" readonly></textarea>
-                                <button class="btn btn-outline-secondary" type="button" data-copy-target="publicShareEmbed">Copy</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-outline-secondary" type="button" id="publicShareRegenerate">Regenerate link</button>
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <form id="publicShareAntiForgery" class="d-none">
-        @Html.AntiForgeryToken()
-    </form>
-}
 
 @section Scripts {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack.min.css" />
@@ -155,20 +79,6 @@
             title.textContent = widget.visualizationName;
             const actions = document.createElement('div');
             actions.className = 'dashboard-widget-actions';
-            const openViz = document.createElement('a');
-            openViz.className = 'dashboard-widget-action';
-            openViz.title = 'Open visualization';
-            openViz.href = `/Visualizations/Details/${widget.visualizationId}`;
-            openViz.innerHTML = '<i class="bi bi-box-arrow-up-right"></i>';
-            actions.appendChild(openViz);
-            if (widget.queryId) {
-                const openQuery = document.createElement('a');
-                openQuery.className = 'dashboard-widget-action';
-                openQuery.title = 'Open query';
-                openQuery.href = `/Queries/Details/${widget.queryId}`;
-                openQuery.innerHTML = '<i class="bi bi-file-earmark-text"></i>';
-                actions.appendChild(openQuery);
-            }
             const badge = document.createElement('span');
             badge.className = 'badge bg-light text-dark border';
             badge.textContent = widget.visualizationType;
@@ -227,16 +137,4 @@
         });
     </script>
     <script src="~/js/visualizations.js" asp-append-version="true"></script>
-    @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
-    {
-        <script>
-            window.publicShareConfig = {
-                dashboardId: @Model.Dashboard.Id,
-                token: "@(Model.PublicShareToken ?? string.Empty)",
-                enabled: @Model.PublicShareEnabled.ToString().ToLowerInvariant(),
-                expiresAt: "@(Model.PublicShareExpiresAt?.ToString("o") ?? string.Empty)"
-            };
-        </script>
-        <script src="~/js/public-share.js" asp-append-version="true"></script>
-    }
 }

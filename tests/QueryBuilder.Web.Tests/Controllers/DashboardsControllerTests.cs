@@ -27,8 +27,9 @@ public class DashboardsControllerTests
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var userManager = UserManagerMockHelper.Create("viewer-1");
         var permissionService = new PermissionService(dbContext, userManager.Object);
+        var publicShareService = new PublicShareService(dbContext);
 
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("viewer-1", "Viewer"))
@@ -79,8 +80,9 @@ public class DashboardsControllerTests
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var userManager = UserManagerMockHelper.Create("editor-1");
         var permissionService = new PermissionService(dbContext, userManager.Object);
+        var publicShareService = new PublicShareService(dbContext);
 
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("editor-1", "Editor"))
@@ -137,8 +139,9 @@ public class DashboardsControllerTests
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var userManager = UserManagerMockHelper.Create("viewer-1");
         var permissionService = new PermissionService(dbContext, userManager.Object);
+        var publicShareService = new PublicShareService(dbContext);
 
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("viewer-1", "Viewer"))
@@ -210,8 +213,9 @@ public class DashboardsControllerTests
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var userManager = UserManagerMockHelper.Create(userId);
         var permissionService = new PermissionService(dbContext, userManager.Object);
+        var publicShareService = new PublicShareService(dbContext);
 
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser(userId, "Viewer"))

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QueryBuilder.Web.Data;
 
@@ -11,9 +12,11 @@ using QueryBuilder.Web.Data;
 namespace QueryBuilder.Web.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260121002334_AddPublicShares")]
+    partial class AddPublicShares
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -410,10 +413,10 @@ namespace QueryBuilder.Web.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EntityType", "EntityId");
+
                     b.HasIndex("Token")
                         .IsUnique();
-
-                    b.HasIndex("EntityType", "EntityId");
 
                     b.ToTable("PublicShares");
                 });

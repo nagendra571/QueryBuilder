@@ -8,6 +8,9 @@ public class DashboardViewModel
 {
     public Dashboard Dashboard { get; set; } = new();
     public IReadOnlyList<DashboardWidgetViewModel> Widgets { get; set; } = Array.Empty<DashboardWidgetViewModel>();
+    public string? PublicShareToken { get; set; }
+    public bool PublicShareEnabled { get; set; }
+    public DateTimeOffset? PublicShareExpiresAt { get; set; }
 }
 
 public class DashboardWidgetViewModel

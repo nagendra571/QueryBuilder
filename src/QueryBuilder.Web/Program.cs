@@ -20,6 +20,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<QueryRunner>();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<SchemaBrowserService>();
+builder.Services.AddScoped<PublicShareService>();
 
 var app = builder.Build();
 
@@ -37,6 +38,30 @@ else
 
 app.UseHttpsRedirection();
 app.UseRouting();
+
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? string.Empty;
+    var isEmbed = path.StartsWith("/public/embed/", StringComparison.OrdinalIgnoreCase);
+
+    context.Response.OnStarting(() =>
+    {
+        if (isEmbed)
+        {
+            context.Response.Headers["Content-Security-Policy"] = "frame-ancestors *";
+            context.Response.Headers.Remove("X-Frame-Options");
+        }
+        else
+        {
+            context.Response.Headers["X-Frame-Options"] = "DENY";
+            context.Response.Headers["Content-Security-Policy"] = "frame-ancestors 'self'";
+        }
+
+        return Task.CompletedTask;
+    });
+
+    await next();
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
