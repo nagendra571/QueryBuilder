@@ -20,6 +20,8 @@
                 <input type="hidden" asp-for="Id" />
                 <input type="hidden" asp-for="QueryId" />
 
+                <partial name="_VisualizationParameters" model="Model" />
+
                 <div class="mb-3">
                     <label asp-for="Name" class="form-label"></label>
                     <input asp-for="Name" class="form-control" />
@@ -141,7 +143,11 @@
             </form>
 
             <div class="viz-preview viz-card">
-                @if (Model.Result != null && Model.Result.Success)
+                @if (Model.Result != null && !Model.Result.Success)
+                {
+                    <div class="alert alert-warning">@Model.Result.ErrorMessage</div>
+                }
+                else if (Model.Result != null && Model.Result.Success)
                 {
                     <div class="alert alert-info">Preview based on current query result.</div>
                     <partial name="_VisualizationPreview" model="Model" />

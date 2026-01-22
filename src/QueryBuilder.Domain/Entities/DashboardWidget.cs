@@ -12,4 +12,5 @@ public class DashboardWidget
 
     public Dashboard? Dashboard { get; set; }
     public Visualization? Visualization { get; set; }
+    public ICollection<DashboardParameterMapping> ParameterMappings { get; set; } = new List<DashboardParameterMapping>();
 }

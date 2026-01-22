@@ -46,4 +46,6 @@ public class VisualizationEditViewModel
     public IReadOnlyList<string> Columns { get; set; } = Array.Empty<string>();
     public string? SubmitAction { get; set; }
     public QueryResultViewModel? Result { get; set; }
+    public IReadOnlyList<QueryParameterDefinitionViewModel> ParameterDefinitions { get; set; } = Array.Empty<QueryParameterDefinitionViewModel>();
+    public Dictionary<string, string> ParameterValues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }

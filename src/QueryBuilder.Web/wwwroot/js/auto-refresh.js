@@ -92,7 +92,10 @@
 
     locks.set(widget.key, true);
     try {
-      const response = await fetch(widget.endpoint, { credentials: "same-origin" });
+      const resolver = window.dashboardParameterResolver;
+      const queryString = typeof resolver === "function" ? resolver(widget.widgetId) : "";
+      const url = queryString ? `${widget.endpoint}?${queryString}` : widget.endpoint;
+      const response = await fetch(url, { credentials: "same-origin" });
       if (!response.ok) {
         showError(container, "Auto refresh failed.");
         return;

@@ -1,0 +1,525 @@
+@model QueryBuilder.Web.Models.Queries.QueryEditViewModel
+
+@if (Model.Id.HasValue)
+{
+    <form id="addParameterForm" method="post" asp-action="AddParameterDefinition" asp-route-id="@Model.Id">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="SettingsJson" id="parameterSettingsJson" value="{}" />
+    </form>
+    <div class="modal fade" id="addParameterModal" tabindex="-1" aria-labelledby="addParameterLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addParameterLabel">Add Parameter</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input class="form-control" name="Name" id="paramNameInput" form="addParameterForm" placeholder="param_name" required />
+                            <div class="form-text">Use letters, numbers, and underscores.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Title</label>
+                            <input class="form-control" name="Title" id="paramTitleInput" form="addParameterForm" placeholder="Display label" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Type</label>
+                            <select class="form-select" name="Type" id="paramTypeInput" form="addParameterForm">
+                                @foreach (var type in Enum.GetValues<QueryBuilder.Domain.Entities.QueryParameterType>())
+                                {
+                                    <option value="@type">@type</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="defaultValueRow">
+                            <label class="form-label">Default Value</label>
+                            <input class="form-control" name="DefaultValue" id="paramDefaultInput" form="addParameterForm" />
+                        </div>
+                        <div class="col-12">
+                            <div id="dateSettings" class="border rounded-3 p-3 bg-light d-none">
+                                <div class="mb-2">
+                                    <label class="form-label">Quick Preset</label>
+                                    <select class="form-select" id="datePreset">
+                                        <option value="">Custom</option>
+                                        <option value="today">Today</option>
+                                        <option value="yesterday">Yesterday</option>
+                                        <option value="last_7_days">Last 7 days</option>
+                                        <option value="last_14_days">Last 14 days</option>
+                                        <option value="last_30_days">Last 30 days</option>
+                                        <option value="last_60_days">Last 60 days</option>
+                                        <option value="last_90_days">Last 90 days</option>
+                                        <option value="this_month">This month</option>
+                                        <option value="last_month">Last month</option>
+                                        <option value="this_year">This year</option>
+                                        <option value="last_year">Last year</option>
+                                    </select>
+                                    <div class="form-text">Selecting a preset will populate the default value.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div id="rangeSettings" class="border rounded-3 p-3 bg-light d-none">
+                                <div class="mb-2">
+                                    <label class="form-label">Range Preset</label>
+                                    <select class="form-select" id="rangePreset">
+                                        <option value="">Custom</option>
+                                        <option value="last_7_days">Last 7 days</option>
+                                        <option value="last_14_days">Last 14 days</option>
+                                        <option value="last_30_days">Last 30 days</option>
+                                        <option value="last_60_days">Last 60 days</option>
+                                        <option value="last_90_days">Last 90 days</option>
+                                        <option value="this_month">This month</option>
+                                        <option value="last_month">Last month</option>
+                                        <option value="this_year">This year</option>
+                                        <option value="last_year">Last year</option>
+                                    </select>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Start</label>
+                                        <input class="form-control" id="rangeStart" type="date" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">End</label>
+                                        <input class="form-control" id="rangeEnd" type="date" />
+                                    </div>
+                                </div>
+                                <div class="form-text">Range defaults are stored in settings for future runs.</div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div id="dropdownSettings" class="border rounded-3 p-3 bg-light d-none">
+                                <div class="mb-2">
+                                    <label class="form-label">Value Source</label>
+                                    <select class="form-select" id="dropdownSource">
+                                        <option value="static">Static list</option>
+                                        <option value="query">Query-based</option>
+                                    </select>
+                                </div>
+                                <div id="dropdownStaticValues" class="mb-2">
+                                    <label class="form-label">Values</label>
+                                    <textarea class="form-control" id="dropdownValues" rows="3" placeholder="One per line"></textarea>
+                                    <div class="form-text">Dropdown list values (newline delimited).</div>
+                                </div>
+                                <div id="dropdownQueryValues" class="mb-2 d-none">
+                                    <label class="form-label">Source Query</label>
+                                    <select class="form-select" id="dropdownQueryId">
+                                        <option value="">Select query</option>
+                                        @foreach (var query in (IEnumerable<SelectListItem>?)ViewBag.ParameterQueries ?? Array.Empty<SelectListItem>())
+                                        {
+                                            <option value="@query.Value">@query.Text</option>
+                                        }
+                                    </select>
+                                    <div class="form-text">First column = name, second column = value (if present).</div>
+                                    <div class="dropdown-preview mt-2">
+                                        <div class="text-muted small" id="dropdownPreviewNote">Select a query to preview values.</div>
+                                        <ul class="list-group list-group-flush d-none" id="dropdownPreviewList"></ul>
+                                    </div>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="dropdownAllowMultiple">
+                                    <label class="form-check-label" for="dropdownAllowMultiple">Allow multiple values</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="IsRequired" value="true" id="paramRequired" form="addParameterForm">
+                                <label class="form-check-label" for="paramRequired">Required</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" form="addParameterForm">Save Parameter</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<script>
+    (() => {
+        const modalEl = document.getElementById("addParameterModal");
+        if (!modalEl) return;
+        const nameInput = document.getElementById("paramNameInput");
+        const titleInput = document.getElementById("paramTitleInput");
+        const typeInput = document.getElementById("paramTypeInput");
+        const defaultInput = document.getElementById("paramDefaultInput");
+        const requiredInput = document.getElementById("paramRequired");
+        const settingsInput = document.getElementById("parameterSettingsJson");
+        const datePanel = document.getElementById("dateSettings");
+        const datePreset = document.getElementById("datePreset");
+        const rangePanel = document.getElementById("rangeSettings");
+        const rangePreset = document.getElementById("rangePreset");
+        const rangeStart = document.getElementById("rangeStart");
+        const rangeEnd = document.getElementById("rangeEnd");
+        const defaultValueRow = document.getElementById("defaultValueRow");
+        const dropdownPanel = document.getElementById("dropdownSettings");
+        const dropdownSource = document.getElementById("dropdownSource");
+        const dropdownValues = document.getElementById("dropdownValues");
+        const dropdownQueryId = document.getElementById("dropdownQueryId");
+        const dropdownAllowMultiple = document.getElementById("dropdownAllowMultiple");
+        const staticBlock = document.getElementById("dropdownStaticValues");
+        const queryBlock = document.getElementById("dropdownQueryValues");
+        const previewNote = document.getElementById("dropdownPreviewNote");
+        const previewList = document.getElementById("dropdownPreviewList");
+        const form = document.getElementById("addParameterForm");
+
+        const setPanelsForType = (type) => {
+            const isDropdown = type === "Dropdown";
+            const isDate = type === "Date" || type === "DateTime";
+            const isRange = type === "DateRange" || type === "DateTimeRange";
+            dropdownPanel.classList.toggle("d-none", !isDropdown);
+            datePanel.classList.toggle("d-none", !isDate);
+            rangePanel.classList.toggle("d-none", !isRange);
+            defaultValueRow?.classList.toggle("d-none", isRange);
+        };
+
+        const setDropdownSource = (source) => {
+            dropdownSource.value = source;
+            staticBlock.classList.toggle("d-none", source !== "static");
+            queryBlock.classList.toggle("d-none", source !== "query");
+        };
+
+        const formatDate = (date, withTime) => {
+            if (withTime) {
+                return date.toISOString().slice(0, 16);
+            }
+            return date.toISOString().slice(0, 10);
+        };
+
+        const startOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
+        const endOfMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        const startOfYear = (date) => new Date(date.getFullYear(), 0, 1);
+        const endOfYear = (date) => new Date(date.getFullYear(), 11, 31);
+
+        const applyDatePreset = (preset, withTime) => {
+            const now = new Date();
+            let value = null;
+            switch (preset) {
+                case "today":
+                    value = now;
+                    break;
+                case "yesterday":
+                    value = new Date(now);
+                    value.setDate(value.getDate() - 1);
+                    break;
+                case "last_7_days":
+                    value = new Date(now);
+                    value.setDate(value.getDate() - 7);
+                    break;
+                case "last_14_days":
+                    value = new Date(now);
+                    value.setDate(value.getDate() - 14);
+                    break;
+                case "last_30_days":
+                    value = new Date(now);
+                    value.setDate(value.getDate() - 30);
+                    break;
+                case "last_60_days":
+                    value = new Date(now);
+                    value.setDate(value.getDate() - 60);
+                    break;
+                case "last_90_days":
+                    value = new Date(now);
+                    value.setDate(value.getDate() - 90);
+                    break;
+                case "this_month":
+                    value = startOfMonth(now);
+                    break;
+                case "last_month":
+                    value = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+                    break;
+                case "this_year":
+                    value = startOfYear(now);
+                    break;
+                case "last_year":
+                    value = startOfYear(new Date(now.getFullYear() - 1, 0, 1));
+                    break;
+                default:
+                    return;
+            }
+
+            defaultInput.value = formatDate(value, withTime);
+        };
+
+        const applyRangePreset = (preset, withTime) => {
+            const now = new Date();
+            let start = null;
+            let end = null;
+            switch (preset) {
+                case "last_7_days":
+                    end = now;
+                    start = new Date(now);
+                    start.setDate(start.getDate() - 7);
+                    break;
+                case "last_14_days":
+                    end = now;
+                    start = new Date(now);
+                    start.setDate(start.getDate() - 14);
+                    break;
+                case "last_30_days":
+                    end = now;
+                    start = new Date(now);
+                    start.setDate(start.getDate() - 30);
+                    break;
+                case "last_60_days":
+                    end = now;
+                    start = new Date(now);
+                    start.setDate(start.getDate() - 60);
+                    break;
+                case "last_90_days":
+                    end = now;
+                    start = new Date(now);
+                    start.setDate(start.getDate() - 90);
+                    break;
+                case "this_month":
+                    start = startOfMonth(now);
+                    end = endOfMonth(now);
+                    break;
+                case "last_month":
+                    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    start = startOfMonth(lastMonth);
+                    end = endOfMonth(lastMonth);
+                    break;
+                case "this_year":
+                    start = startOfYear(now);
+                    end = endOfYear(now);
+                    break;
+                case "last_year":
+                    const lastYear = new Date(now.getFullYear() - 1, 0, 1);
+                    start = startOfYear(lastYear);
+                    end = endOfYear(lastYear);
+                    break;
+                default:
+                    return;
+            }
+
+            rangeStart.value = formatDate(start, withTime);
+            rangeEnd.value = formatDate(end, withTime);
+        };
+
+        const resetForm = () => {
+            nameInput.removeAttribute("readonly");
+            nameInput.value = "";
+            titleInput.value = "";
+            typeInput.value = "Text";
+            defaultInput.value = "";
+            requiredInput.checked = false;
+            datePreset.value = "";
+            rangePreset.value = "";
+            rangeStart.value = "";
+            rangeEnd.value = "";
+            dropdownValues.value = "";
+            dropdownQueryId.value = "";
+            dropdownAllowMultiple.checked = false;
+            if (previewNote) {
+                previewNote.textContent = "Select a query to preview values.";
+            }
+            if (previewList) {
+                previewList.classList.add("d-none");
+                previewList.innerHTML = "";
+            }
+            setDropdownSource("static");
+            settingsInput.value = "{}";
+            setPanelsForType("Text");
+        };
+
+        const parseSettings = (settingsJson) => {
+            if (!settingsJson) return {};
+            try {
+                return JSON.parse(settingsJson);
+            } catch {
+                return {};
+            }
+        };
+
+        document.addEventListener("click", (event) => {
+            const button = event.target.closest(".query-param-gear");
+            if (!button) return;
+            const card = button.closest(".query-param-card");
+            if (!card) return;
+            const name = card.dataset.paramName || "";
+            const title = card.dataset.paramTitle || "";
+            const type = card.dataset.paramType || "Text";
+            const def = card.dataset.paramDefault || "";
+            const required = card.dataset.paramRequired === "true";
+            const settings = parseSettings(card.dataset.paramSettings);
+
+            nameInput.value = name;
+            nameInput.readOnly = true;
+            titleInput.value = title;
+            typeInput.value = type;
+            defaultInput.value = def;
+            requiredInput.checked = required;
+            dropdownValues.value = "";
+            dropdownQueryId.value = "";
+            dropdownAllowMultiple.checked = false;
+            settingsInput.value = card.dataset.paramSettings || "{}";
+            datePreset.value = "";
+            rangePreset.value = "";
+            rangeStart.value = "";
+            rangeEnd.value = "";
+            if (previewNote) {
+                previewNote.textContent = "Select a query to preview values.";
+            }
+            if (previewList) {
+                previewList.classList.add("d-none");
+                previewList.innerHTML = "";
+            }
+
+            if (type === "Dropdown") {
+                setPanelsForType("Dropdown");
+                if (settings.sourceQueryId) {
+                    setDropdownSource("query");
+                    dropdownQueryId.value = settings.sourceQueryId;
+                    if (dropdownQueryId.value) {
+                        loadQueryPreview(dropdownQueryId.value);
+                    }
+                } else {
+                    setDropdownSource("static");
+                    if (Array.isArray(settings.options)) {
+                        dropdownValues.value = settings.options.map(o => o.value).join("\n");
+                    }
+                }
+                dropdownAllowMultiple.checked = settings.allowMultiple === true;
+            } else if (type === "Date" || type === "DateTime") {
+                setPanelsForType(type);
+                if (settings.presetKey) {
+                    datePreset.value = settings.presetKey;
+                }
+            } else if (type === "DateRange" || type === "DateTimeRange") {
+                setPanelsForType(type);
+                if (settings.presetKey) {
+                    rangePreset.value = settings.presetKey;
+                }
+                if (settings.defaultStart) {
+                    rangeStart.value = settings.defaultStart;
+                }
+                if (settings.defaultEnd) {
+                    rangeEnd.value = settings.defaultEnd;
+                }
+            } else {
+                setPanelsForType(type);
+            }
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        });
+
+        dropdownSource?.addEventListener("change", () => setDropdownSource(dropdownSource.value));
+
+        const renderPreview = (options) => {
+            if (!previewList || !previewNote) return;
+            previewList.innerHTML = "";
+            if (!options || options.length === 0) {
+                previewNote.textContent = "No values found for this query.";
+                previewList.classList.add("d-none");
+                return;
+            }
+
+            previewNote.textContent = `Previewing ${options.length} values.`;
+            previewList.classList.remove("d-none");
+            options.forEach(option => {
+                const item = document.createElement("li");
+                item.className = "list-group-item d-flex justify-content-between align-items-center";
+                item.innerHTML = `<span>${option.label}</span><span class="text-muted small">${option.value}</span>`;
+                previewList.appendChild(item);
+            });
+        };
+
+        const loadQueryPreview = async (queryId) => {
+            if (!previewNote) return;
+            previewNote.textContent = "Loading preview...";
+            if (previewList) {
+                previewList.classList.add("d-none");
+                previewList.innerHTML = "";
+            }
+
+            try {
+                const response = await fetch(`/Queries/ParameterQueryPreview?queryId=${encodeURIComponent(queryId)}`);
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    previewNote.textContent = data.errorMessage || "Unable to load preview values.";
+                    return;
+                }
+                renderPreview(data.options);
+            } catch {
+                previewNote.textContent = "Unable to load preview values.";
+            }
+        };
+
+        dropdownQueryId?.addEventListener("change", () => {
+            if (!dropdownQueryId.value) {
+                if (previewNote) previewNote.textContent = "Select a query to preview values.";
+                if (previewList) {
+                    previewList.classList.add("d-none");
+                    previewList.innerHTML = "";
+                }
+                return;
+            }
+            loadQueryPreview(dropdownQueryId.value);
+        });
+
+        typeInput?.addEventListener("change", () => {
+            setPanelsForType(typeInput.value);
+        });
+
+        datePreset?.addEventListener("change", () => {
+            if (!datePreset.value) return;
+            applyDatePreset(datePreset.value, typeInput.value === "DateTime");
+        });
+
+        rangePreset?.addEventListener("change", () => {
+            if (!rangePreset.value) return;
+            applyRangePreset(rangePreset.value, typeInput.value === "DateTimeRange");
+        });
+
+        modalEl.addEventListener("show.bs.modal", (event) => {
+            if (event.relatedTarget?.getAttribute("data-bs-target") === "#addParameterModal") {
+                resetForm();
+            }
+        });
+
+        form?.addEventListener("submit", () => {
+            if (typeInput.value === "Dropdown") {
+                if (dropdownSource.value === "query") {
+                    const queryId = dropdownQueryId.value;
+                    settingsInput.value = queryId
+                        ? JSON.stringify({ sourceQueryId: Number(queryId), allowMultiple: dropdownAllowMultiple.checked })
+                        : "{}";
+                    return;
+                }
+
+                const values = dropdownValues.value
+                    .split("\n")
+                    .map(v => v.trim())
+                    .filter(v => v.length > 0)
+                    .map(v => ({ label: v, value: v }));
+                settingsInput.value = JSON.stringify({ options: values, allowMultiple: dropdownAllowMultiple.checked });
+                return;
+            }
+
+            if (typeInput.value === "Date" || typeInput.value === "DateTime") {
+                settingsInput.value = datePreset.value ? JSON.stringify({ presetKey: datePreset.value }) : "{}";
+                return;
+            }
+
+            if (typeInput.value === "DateRange" || typeInput.value === "DateTimeRange") {
+                const payload = {
+                    presetKey: rangePreset.value || null,
+                    defaultStart: rangeStart.value || null,
+                    defaultEnd: rangeEnd.value || null
+                };
+                settingsInput.value = JSON.stringify(payload);
+                return;
+            }
+
+            settingsInput.value = "{}";
+        });
+    })();
+</script>

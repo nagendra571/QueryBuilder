@@ -1,0 +1,205 @@
+@model QueryBuilder.Web.Models.Queries.QueryEditViewModel
+@using QueryBuilder.Domain.Entities
+
+@{
+    var tokenSet = new HashSet<string>(Model.ParsedTokens ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+    var definitions = Model.ParameterDefinitions ?? Array.Empty<QueryBuilder.Web.Models.Queries.QueryParameterDefinitionViewModel>();
+    var definitionMap = definitions.ToDictionary(d => d.Name, d => d, StringComparer.OrdinalIgnoreCase);
+    var missing = tokenSet.Where(t => !definitionMap.ContainsKey(t.Split('.', 2)[0])).ToList();
+}
+
+<div class="query-params-strip mb-3" data-params-strip="true">
+    <div class="query-params-header">
+        <div class="query-params-title">Parameter Values</div>
+        <div class="query-params-meta text-muted">Changes apply to results and visualizations.</div>
+    </div>
+
+    <div class="query-params-grid" data-params-grid="true">
+            @foreach (var definition in definitions)
+            {
+                <div class="query-param-card"
+                     data-param-name="@definition.Name"
+                     data-param-title="@definition.Title"
+                     data-param-type="@definition.Type"
+                     data-param-default="@definition.DefaultValue"
+                     data-param-settings="@definition.SettingsJson"
+                     data-param-required="@definition.IsRequired.ToString().ToLowerInvariant()">
+                    <div class="query-param-label">
+                        <span>@definition.Title</span>
+                        <button class="btn btn-link p-0 query-param-gear" type="button" title="Edit parameter">
+                            <i class="bi bi-gear"></i>
+                        </button>
+                    </div>
+                    @switch (definition.Type)
+                    {
+                        case QueryParameterType.Text:
+                            <input class="form-control form-control-sm"
+                                   data-param-input="true"
+                                   name="ParameterValues[@definition.Name]"
+                                   value="@(Model.ParameterValues.TryGetValue(definition.Name, out var textValue) ? textValue : definition.DefaultValue)"
+                                   placeholder="Enter text" />
+                            <div class="form-text text-warning">Text parameters are unsafe for public links.</div>
+                            break;
+                        case QueryParameterType.Number:
+                            <input class="form-control form-control-sm"
+                                   type="number"
+                                   data-param-input="true"
+                                   name="ParameterValues[@definition.Name]"
+                                   value="@(Model.ParameterValues.TryGetValue(definition.Name, out var numberValue) ? numberValue : definition.DefaultValue)" />
+                            break;
+                        case QueryParameterType.Dropdown:
+                            <select class="form-select form-select-sm" data-param-input="true" name="ParameterValues[@definition.Name]">
+                                <option value="">Select...</option>
+                                @foreach (var option in definition.Options)
+                                {
+                                    var selected = Model.ParameterValues.TryGetValue(definition.Name, out var selectedValue) ? selectedValue : definition.DefaultValue;
+                                    <option value="@option.Value" selected="@(selected == option.Value ? "selected" : null)">@option.Label</option>
+                                }
+                            </select>
+                            break;
+                        case QueryParameterType.Date:
+                            <div class="input-group input-group-sm query-param-date" data-param-date-group="true">
+                                <input class="form-control"
+                                       type="date"
+                                       data-param-input="true"
+                                       data-param-date="true"
+                                       data-param-kind="date"
+                                       name="ParameterValues[@definition.Name]"
+                                       value="@(Model.ParameterValues.TryGetValue(definition.Name, out var dateValue) ? dateValue : definition.DefaultValue)" />
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Presets">
+                                    <i class="bi bi-calendar3"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end query-param-presets">
+                                    <li><button class="dropdown-item" type="button" data-preset="today">Today</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="yesterday">Yesterday</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_7_days">Last 7 days</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_14_days">Last 14 days</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_30_days">Last 30 days</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_60_days">Last 60 days</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_90_days">Last 90 days</button></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="this_month">This month</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_month">Last month</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="this_year">This year</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_year">Last year</button></li>
+                                </ul>
+                            </div>
+                            break;
+                        case QueryParameterType.DateTime:
+                            <div class="input-group input-group-sm query-param-date" data-param-date-group="true">
+                                <input class="form-control"
+                                       type="datetime-local"
+                                       data-param-input="true"
+                                       data-param-date="true"
+                                       data-param-kind="datetime"
+                                       name="ParameterValues[@definition.Name]"
+                                       value="@(Model.ParameterValues.TryGetValue(definition.Name, out var dateTimeValue) ? dateTimeValue : definition.DefaultValue)" />
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Presets">
+                                    <i class="bi bi-calendar3"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end query-param-presets">
+                                    <li><button class="dropdown-item" type="button" data-preset="now">Now</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="today">Today</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="yesterday">Yesterday</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_7_days">Last 7 days</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_14_days">Last 14 days</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_30_days">Last 30 days</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_60_days">Last 60 days</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_90_days">Last 90 days</button></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="this_month">This month</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_month">Last month</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="this_year">This year</button></li>
+                                    <li><button class="dropdown-item" type="button" data-preset="last_year">Last year</button></li>
+                                </ul>
+                            </div>
+                            break;
+                        case QueryParameterType.DateRange:
+                            <div class="query-param-range-group" data-param-range-group="true" data-param-kind="date">
+                                <div class="d-flex gap-2">
+                                    <input class="form-control form-control-sm"
+                                           type="date"
+                                           data-param-input="true"
+                                           data-param-range="start"
+                                           name="ParameterValues[@(definition.Name + ".start")]"
+                                           value="@(Model.ParameterValues.TryGetValue($"{definition.Name}.start", out var startDate) ? startDate : null)" />
+                                    <input class="form-control form-control-sm"
+                                           type="date"
+                                           data-param-input="true"
+                                           data-param-range="end"
+                                           name="ParameterValues[@(definition.Name + ".end")]"
+                                           value="@(Model.ParameterValues.TryGetValue($"{definition.Name}.end", out var endDate) ? endDate : null)" />
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Presets">
+                                            <i class="bi bi-calendar3"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end query-param-presets">
+                                            <li><button class="dropdown-item" type="button" data-preset="last_7_days">Last 7 days</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_14_days">Last 14 days</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_30_days">Last 30 days</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_60_days">Last 60 days</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_90_days">Last 90 days</button></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="this_month">This month</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_month">Last month</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="this_year">This year</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_year">Last year</button></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            break;
+                        case QueryParameterType.DateTimeRange:
+                            <div class="query-param-range-group" data-param-range-group="true" data-param-kind="datetime">
+                                <div class="d-flex gap-2">
+                                    <input class="form-control form-control-sm"
+                                           type="datetime-local"
+                                           data-param-input="true"
+                                           data-param-range="start"
+                                           name="ParameterValues[@(definition.Name + ".start")]"
+                                           value="@(Model.ParameterValues.TryGetValue($"{definition.Name}.start", out var startDateTime) ? startDateTime : null)" />
+                                    <input class="form-control form-control-sm"
+                                           type="datetime-local"
+                                           data-param-input="true"
+                                           data-param-range="end"
+                                           name="ParameterValues[@(definition.Name + ".end")]"
+                                           value="@(Model.ParameterValues.TryGetValue($"{definition.Name}.end", out var endDateTime) ? endDateTime : null)" />
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Presets">
+                                            <i class="bi bi-calendar3"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end query-param-presets">
+                                            <li><button class="dropdown-item" type="button" data-preset="last_7_days">Last 7 days</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_14_days">Last 14 days</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_30_days">Last 30 days</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_60_days">Last 60 days</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_90_days">Last 90 days</button></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="this_month">This month</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_month">Last month</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="this_year">This year</button></li>
+                                            <li><button class="dropdown-item" type="button" data-preset="last_year">Last year</button></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            break;
+                    }
+                </div>
+            }
+        </div>
+
+    <div class="text-muted mt-2 @(definitions.Count == 0 && missing.Count == 0 ? "" : "d-none")" data-params-empty="true">No parameters configured.</div>
+
+    <div class="query-params-actions" data-params-actions="true">
+        <button class="btn btn-sm btn-primary" type="button" id="applyParamsBtn">Apply Changes</button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" id="resetParamsBtn">Reset</button>
+    </div>
+
+    @if (missing.Count > 0)
+    {
+        <div class="alert alert-warning mt-3 mb-0" data-params-missing="true">
+            Some parameters in the SQL are missing definitions: @string.Join(", ", missing)
+        </div>
+    }
+</div>

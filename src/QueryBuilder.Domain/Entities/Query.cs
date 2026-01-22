@@ -16,4 +16,5 @@ public class Query
     public DataSource? DataSource { get; set; }
     public ICollection<QueryExecution> Executions { get; set; } = new List<QueryExecution>();
     public ICollection<Visualization> Visualizations { get; set; } = new List<Visualization>();
+    public ICollection<QueryParameterDefinition> ParameterDefinitions { get; set; } = new List<QueryParameterDefinition>();
 }

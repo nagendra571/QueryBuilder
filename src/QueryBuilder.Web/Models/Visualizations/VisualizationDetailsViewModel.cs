@@ -9,4 +9,5 @@ public class VisualizationDetailsViewModel
     public QueryResultViewModel Result { get; set; } = new();
     public VisualizationConfig Config { get; set; } = new();
     public string QueryName { get; set; } = string.Empty;
+    public IReadOnlyList<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> Dashboards { get; set; } = Array.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
 }

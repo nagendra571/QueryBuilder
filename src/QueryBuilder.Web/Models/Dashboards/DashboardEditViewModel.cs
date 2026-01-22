@@ -18,4 +18,6 @@ public class DashboardEditViewModel
     public IReadOnlyList<DashboardWidgetItemViewModel> Widgets { get; set; } = Array.Empty<DashboardWidgetItemViewModel>();
     public IReadOnlyList<Visualization> AvailableVisualizations { get; set; } = Array.Empty<Visualization>();
     public ShareSectionViewModel ShareSection { get; set; } = new();
+    public IReadOnlyList<DashboardParameterControlViewModel> ParameterControls { get; set; } = Array.Empty<DashboardParameterControlViewModel>();
+    public IReadOnlyList<DashboardWidgetParameterViewModel> WidgetParameters { get; set; } = Array.Empty<DashboardWidgetParameterViewModel>();
 }

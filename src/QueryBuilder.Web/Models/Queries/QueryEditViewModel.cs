@@ -26,4 +26,7 @@ public class QueryEditViewModel
     public QueryResultViewModel? Result { get; set; }
     public IReadOnlyList<QueryVisualizationListItemViewModel> Visualizations { get; set; } = Array.Empty<QueryVisualizationListItemViewModel>();
     public ShareSectionViewModel ShareSection { get; set; } = new();
+    public IReadOnlyList<QueryParameterDefinitionViewModel> ParameterDefinitions { get; set; } = Array.Empty<QueryParameterDefinitionViewModel>();
+    public IReadOnlyList<string> ParsedTokens { get; set; } = Array.Empty<string>();
+    public Dictionary<string, string?> ParameterValues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }

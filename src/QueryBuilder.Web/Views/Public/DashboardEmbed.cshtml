@@ -1,9 +1,15 @@
 @model QueryBuilder.Web.Models.Dashboards.DashboardViewModel
 @using System.Text.Json
+@using System.Text.Json.Serialization
 
 @{
     ViewData["Title"] = Model.Dashboard.Name;
     Layout = null;
+    var jsonOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
+    };
 }
 
 <!DOCTYPE html>
@@ -28,6 +34,92 @@
         }
         else
         {
+            var hasTopControls = Model.ParameterControls.Any(c => c.Placement == QueryBuilder.Domain.Entities.DashboardParameterPlacement.TopBar);
+            var hasInlineControls = Model.WidgetParameters.Any(w => w.Parameters.Count > 0);
+            if (hasTopControls || hasInlineControls)
+            {
+                <div class="dashboard-parameter-bar mb-3" id="dashboardParameterBar">
+                    @if (hasTopControls)
+                    {
+                        <div class="dashboard-parameter-grid">
+                            @foreach (var control in Model.ParameterControls.Where(c => c.Placement == QueryBuilder.Domain.Entities.DashboardParameterPlacement.TopBar))
+                            {
+                                <div class="dashboard-parameter-field">
+                                    <label class="form-label">@control.Title</label>
+                                    @{
+                                        var key = control.Key;
+                                        var values = Model.ParameterState.DashboardControlValues;
+                                    }
+                                    @switch (control.Type)
+                                    {
+                                        case QueryBuilder.Domain.Entities.QueryParameterType.Number:
+                                            <input class="form-control form-control-sm" type="number" name="dc_@key" value="@(values.TryGetValue(key, out var numVal) ? numVal : control.DefaultValue)" data-dashboard-control="true" />
+                                            break;
+                                        case QueryBuilder.Domain.Entities.QueryParameterType.Dropdown:
+                                            var options = new List<QueryBuilder.Web.Models.Queries.QueryParameterOptionViewModel>();
+                                            if (!string.IsNullOrWhiteSpace(control.SettingsJson))
+                                            {
+                                                using var doc = JsonDocument.Parse(control.SettingsJson);
+                                                if (doc.RootElement.TryGetProperty("options", out var optionsElement) &&
+                                                    optionsElement.ValueKind == JsonValueKind.Array)
+                                                {
+                                                    foreach (var option in optionsElement.EnumerateArray())
+                                                    {
+                                                        if (!option.TryGetProperty("value", out var valueElement))
+                                                        {
+                                                            continue;
+                                                        }
+                                                        var value = valueElement.GetString();
+                                                        var label = option.TryGetProperty("label", out var labelElement)
+                                                            ? labelElement.GetString()
+                                                            : value;
+                                                        if (!string.IsNullOrWhiteSpace(value))
+                                                        {
+                                                            options.Add(new QueryBuilder.Web.Models.Queries.QueryParameterOptionViewModel
+                                                            {
+                                                                Label = label ?? value!,
+                                                                Value = value!
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            <select class="form-select form-select-sm" name="dc_@key" data-dashboard-control="true">
+                                                <option value="">Select</option>
+                                                @foreach (var opt in options)
+                                                {
+                                                    var selected = values.TryGetValue(key, out var val) ? val == opt.Value : opt.Value == control.DefaultValue;
+                                                    <option value="@opt.Value" selected="@(selected ? "selected" : null)">@opt.Label</option>
+                                                }
+                                            </select>
+                                            break;
+                                        case QueryBuilder.Domain.Entities.QueryParameterType.Date:
+                                            <input class="form-control form-control-sm" type="date" name="dc_@key" value="@(values.TryGetValue(key, out var dateVal) ? dateVal : control.DefaultValue)" data-dashboard-control="true" />
+                                            break;
+                                        case QueryBuilder.Domain.Entities.QueryParameterType.DateTime:
+                                            <input class="form-control form-control-sm" type="datetime-local" name="dc_@key" value="@(values.TryGetValue(key, out var dtVal) ? dtVal : control.DefaultValue)" data-dashboard-control="true" />
+                                            break;
+                                        case QueryBuilder.Domain.Entities.QueryParameterType.DateRange:
+                                        case QueryBuilder.Domain.Entities.QueryParameterType.DateTimeRange:
+                                            var inputType = control.Type == QueryBuilder.Domain.Entities.QueryParameterType.DateRange ? "date" : "datetime-local";
+                                            <div class="d-flex gap-2">
+                                                <input class="form-control form-control-sm" type="@inputType" name="@($"dc_{key}_start")" value="@(values.TryGetValue($"{key}.start", out var startVal) ? startVal : string.Empty)" data-dashboard-control="true" />
+                                                <input class="form-control form-control-sm" type="@inputType" name="@($"dc_{key}_end")" value="@(values.TryGetValue($"{key}.end", out var endVal) ? endVal : string.Empty)" data-dashboard-control="true" />
+                                            </div>
+                                            break;
+                                        default:
+                                            <input class="form-control form-control-sm" type="text" name="dc_@key" value="@(values.TryGetValue(key, out var textVal) ? textVal : control.DefaultValue)" data-dashboard-control="true" />
+                                            break;
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    <div class="dashboard-parameter-actions">
+                        <button class="btn btn-sm btn-primary" type="button" id="dashboardApplyBtn">Apply</button>
+                    </div>
+                </div>
+            }
             <div class="grid-stack dashboard-grid"></div>
         }
     </div>
@@ -36,6 +128,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
         const widgets = [];
+        const widgetParameters = @Html.Raw(JsonSerializer.Serialize(Model.WidgetParameters, jsonOptions));
+        const parameterState = @Html.Raw(JsonSerializer.Serialize(Model.ParameterState, jsonOptions));
         @foreach (var widget in Model.Widgets)
         {
             var rowsJson = JsonSerializer.Serialize(widget.Result.Rows);
@@ -134,7 +228,33 @@
     </script>
     <script src="~/js/visualizations.js" asp-append-version="true"></script>
     <script>
+        window.dashboardParameters = {
+            widgetParameters: widgetParameters,
+            parameterState: parameterState
+        };
         const publicToken = "@Context.Request.RouteValues["token"]";
+        window.dashboardParameterConfig = {
+            mode: "public",
+            widgets: widgets.map(widget => ({
+                id: widget.id,
+                widgetId: widget.id,
+                visualizationType: widget.visualizationType,
+                endpoint: `/public/data/d/${publicToken}/w/${widget.id}`
+            }))
+        };
+    </script>
+    <script src="~/js/dashboard-parameters.js" asp-append-version="true"></script>
+    <script>
+        if (window.dashboardParameters?.renderInlineControls) {
+            widgets.forEach(widget => {
+                const header = document.querySelector(`[data-widget-id='${widget.id}'] .dashboard-widget-header`);
+                if (header) {
+                    window.dashboardParameters.renderInlineControls(widget.id, header);
+                }
+            });
+        }
+    </script>
+    <script>
         window.autoRefreshConfig = {
             mode: "public-embed",
             token: publicToken,
