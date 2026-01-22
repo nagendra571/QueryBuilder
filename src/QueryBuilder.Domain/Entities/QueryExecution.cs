@@ -15,6 +15,7 @@ public class QueryExecution
     public int DurationMs { get; set; }
     public int? RowCount { get; set; }
     public string? ErrorMessage { get; set; }
+    public string? ParametersJson { get; set; }
 
     public Query? Query { get; set; }
 }

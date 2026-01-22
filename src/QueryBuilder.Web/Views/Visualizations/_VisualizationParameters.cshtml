@@ -1,0 +1,83 @@
+@model QueryBuilder.Web.Models.Visualizations.VisualizationEditViewModel
+@using QueryBuilder.Domain.Entities
+
+@if (Model.ParameterDefinitions.Count > 0)
+{
+    <div class="query-params-strip mb-3">
+        <div class="query-params-header">
+            <div class="query-params-title">Parameter Values</div>
+            <div class="query-params-meta text-muted">Used for preview and saved visualization.</div>
+        </div>
+        <div class="query-params-grid">
+            @foreach (var definition in Model.ParameterDefinitions)
+            {
+                <div class="query-param-card">
+                    <div class="query-param-label">
+                        <span>@definition.Title</span>
+                    </div>
+                    @switch (definition.Type)
+                    {
+                        case QueryParameterType.Text:
+                            <input class="form-control form-control-sm"
+                                   name="ParameterValues[@definition.Name]"
+                                   value="@(Model.ParameterValues.TryGetValue(definition.Name, out var textValue) ? textValue : definition.DefaultValue)"
+                                   placeholder="Enter text" />
+                            break;
+                        case QueryParameterType.Number:
+                            <input class="form-control form-control-sm"
+                                   type="number"
+                                   name="ParameterValues[@definition.Name]"
+                                   value="@(Model.ParameterValues.TryGetValue(definition.Name, out var numberValue) ? numberValue : definition.DefaultValue)" />
+                            break;
+                        case QueryParameterType.Dropdown:
+                            <select class="form-select form-select-sm" name="ParameterValues[@definition.Name]">
+                                <option value="">Select...</option>
+                                @foreach (var option in definition.Options)
+                                {
+                                    var selected = Model.ParameterValues.TryGetValue(definition.Name, out var selectedValue) ? selectedValue : definition.DefaultValue;
+                                    <option value="@option.Value" selected="@(selected == option.Value ? "selected" : null)">@option.Label</option>
+                                }
+                            </select>
+                            break;
+                        case QueryParameterType.Date:
+                            <input class="form-control form-control-sm"
+                                   type="date"
+                                   name="ParameterValues[@definition.Name]"
+                                   value="@(Model.ParameterValues.TryGetValue(definition.Name, out var dateValue) ? dateValue : definition.DefaultValue)" />
+                            break;
+                        case QueryParameterType.DateTime:
+                            <input class="form-control form-control-sm"
+                                   type="datetime-local"
+                                   name="ParameterValues[@definition.Name]"
+                                   value="@(Model.ParameterValues.TryGetValue(definition.Name, out var dateTimeValue) ? dateTimeValue : definition.DefaultValue)" />
+                            break;
+                        case QueryParameterType.DateRange:
+                            <div class="d-flex gap-2">
+                                <input class="form-control form-control-sm"
+                                       type="date"
+                                       name="ParameterValues[@(definition.Name + ".start")]"
+                                       value="@(Model.ParameterValues.TryGetValue($"{definition.Name}.start", out var startDate) ? startDate : null)" />
+                                <input class="form-control form-control-sm"
+                                       type="date"
+                                       name="ParameterValues[@(definition.Name + ".end")]"
+                                       value="@(Model.ParameterValues.TryGetValue($"{definition.Name}.end", out var endDate) ? endDate : null)" />
+                            </div>
+                            break;
+                        case QueryParameterType.DateTimeRange:
+                            <div class="d-flex gap-2">
+                                <input class="form-control form-control-sm"
+                                       type="datetime-local"
+                                       name="ParameterValues[@(definition.Name + ".start")]"
+                                       value="@(Model.ParameterValues.TryGetValue($"{definition.Name}.start", out var startDateTime) ? startDateTime : null)" />
+                                <input class="form-control form-control-sm"
+                                       type="datetime-local"
+                                       name="ParameterValues[@(definition.Name + ".end")]"
+                                       value="@(Model.ParameterValues.TryGetValue($"{definition.Name}.end", out var endDateTime) ? endDateTime : null)" />
+                            </div>
+                            break;
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}

@@ -21,6 +21,9 @@ public class ApplicationDbContext : IdentityDbContext
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<Share> Shares => Set<Share>();
     public DbSet<PublicShare> PublicShares => Set<PublicShare>();
+    public DbSet<QueryParameterDefinition> QueryParameterDefinitions => Set<QueryParameterDefinition>();
+    public DbSet<DashboardParameterControl> DashboardParameterControls => Set<DashboardParameterControl>();
+    public DbSet<DashboardParameterMapping> DashboardParameterMappings => Set<DashboardParameterMapping>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -48,6 +51,36 @@ public class ApplicationDbContext : IdentityDbContext
             entity.Property(s => s.Token).HasMaxLength(200);
             entity.HasIndex(s => s.Token).IsUnique();
             entity.HasIndex(s => new { s.EntityType, s.EntityId });
+        });
+
+        builder.Entity<QueryParameterDefinition>(entity =>
+        {
+            entity.Property(p => p.Name).HasMaxLength(200);
+            entity.Property(p => p.Title).HasMaxLength(200);
+            entity.Property(p => p.SettingsJson).HasDefaultValue("{}");
+            entity.HasIndex(p => new { p.QueryId, p.Name }).IsUnique();
+            entity.HasIndex(p => p.QueryId);
+        });
+
+        builder.Entity<DashboardParameterControl>(entity =>
+        {
+            entity.Property(p => p.Key).HasMaxLength(200);
+            entity.Property(p => p.Title).HasMaxLength(200);
+            entity.Property(p => p.SettingsJson).HasDefaultValue("{}");
+            entity.HasIndex(p => new { p.DashboardId, p.Key }).IsUnique();
+            entity.HasIndex(p => p.DashboardId);
+        });
+
+        builder.Entity<DashboardParameterMapping>(entity =>
+        {
+            entity.Property(p => p.QueryParamKey).HasMaxLength(200);
+            entity.Property(p => p.ControlKey).HasMaxLength(200);
+            entity.HasIndex(p => new { p.DashboardWidgetId, p.QueryParamKey }).IsUnique();
+            entity.HasIndex(p => p.QueryId);
+            entity.HasOne(p => p.Query)
+                .WithMany()
+                .HasForeignKey(p => p.QueryId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
     }
 }

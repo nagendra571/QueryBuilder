@@ -11,6 +11,9 @@ public class DashboardViewModel
     public string? PublicShareToken { get; set; }
     public bool PublicShareEnabled { get; set; }
     public DateTimeOffset? PublicShareExpiresAt { get; set; }
+    public IReadOnlyList<DashboardParameterControlViewModel> ParameterControls { get; set; } = Array.Empty<DashboardParameterControlViewModel>();
+    public IReadOnlyList<DashboardWidgetParameterViewModel> WidgetParameters { get; set; } = Array.Empty<DashboardWidgetParameterViewModel>();
+    public DashboardParameterStateViewModel ParameterState { get; set; } = new();
 }
 
 public class DashboardWidgetViewModel

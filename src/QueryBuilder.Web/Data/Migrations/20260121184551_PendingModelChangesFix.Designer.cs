@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QueryBuilder.Web.Data;
 
@@ -11,9 +12,11 @@ using QueryBuilder.Web.Data;
 namespace QueryBuilder.Web.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260121184551_PendingModelChangesFix")]
+    partial class PendingModelChangesFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -247,7 +250,7 @@ namespace QueryBuilder.Web.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Dashboards", (string)null);
+                    b.ToTable("Dashboards");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.DashboardParameterControl", b =>
@@ -299,7 +302,7 @@ namespace QueryBuilder.Web.Data.Migrations
                     b.HasIndex("DashboardId", "Key")
                         .IsUnique();
 
-                    b.ToTable("DashboardParameterControls", (string)null);
+                    b.ToTable("DashboardParameterControls");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.DashboardParameterMapping", b =>
@@ -341,7 +344,7 @@ namespace QueryBuilder.Web.Data.Migrations
                     b.HasIndex("DashboardWidgetId", "QueryParamKey")
                         .IsUnique();
 
-                    b.ToTable("DashboardParameterMappings", (string)null);
+                    b.ToTable("DashboardParameterMappings");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.DashboardWidget", b =>
@@ -376,7 +379,7 @@ namespace QueryBuilder.Web.Data.Migrations
 
                     b.HasIndex("VisualizationId");
 
-                    b.ToTable("DashboardWidgets", (string)null);
+                    b.ToTable("DashboardWidgets");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.DataSource", b =>
@@ -412,7 +415,7 @@ namespace QueryBuilder.Web.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DataSources", (string)null);
+                    b.ToTable("DataSources");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.Group", b =>
@@ -435,7 +438,7 @@ namespace QueryBuilder.Web.Data.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Groups", (string)null);
+                    b.ToTable("Groups");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.GroupMember", b =>
@@ -461,7 +464,7 @@ namespace QueryBuilder.Web.Data.Migrations
                     b.HasIndex("GroupId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("GroupMembers", (string)null);
+                    b.ToTable("GroupMembers");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.PublicShare", b =>
@@ -509,7 +512,7 @@ namespace QueryBuilder.Web.Data.Migrations
 
                     b.HasIndex("EntityType", "EntityId");
 
-                    b.ToTable("PublicShares", (string)null);
+                    b.ToTable("PublicShares");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.Query", b =>
@@ -555,7 +558,7 @@ namespace QueryBuilder.Web.Data.Migrations
 
                     b.HasIndex("DataSourceId");
 
-                    b.ToTable("Queries", (string)null);
+                    b.ToTable("Queries");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.QueryExecution", b =>
@@ -591,7 +594,7 @@ namespace QueryBuilder.Web.Data.Migrations
 
                     b.HasIndex("QueryId");
 
-                    b.ToTable("QueryExecutions", (string)null);
+                    b.ToTable("QueryExecutions");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.QueryParameterDefinition", b =>
@@ -642,7 +645,7 @@ namespace QueryBuilder.Web.Data.Migrations
                     b.HasIndex("QueryId", "Name")
                         .IsUnique();
 
-                    b.ToTable("QueryParameterDefinitions", (string)null);
+                    b.ToTable("QueryParameterDefinitions");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.Share", b =>
@@ -679,7 +682,7 @@ namespace QueryBuilder.Web.Data.Migrations
 
                     b.HasIndex("EntityType", "EntityId");
 
-                    b.ToTable("Shares", (string)null);
+                    b.ToTable("Shares");
                 });
 
             modelBuilder.Entity("QueryBuilder.Domain.Entities.Visualization", b =>
@@ -720,7 +723,7 @@ namespace QueryBuilder.Web.Data.Migrations
 
                     b.HasIndex("QueryId");
 
-                    b.ToTable("Visualizations", (string)null);
+                    b.ToTable("Visualizations");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -785,7 +788,7 @@ namespace QueryBuilder.Web.Data.Migrations
                     b.Navigation("Dashboard");
                 });
 
-                modelBuilder.Entity("QueryBuilder.Domain.Entities.DashboardParameterMapping", b =>
+            modelBuilder.Entity("QueryBuilder.Domain.Entities.DashboardParameterMapping", b =>
                 {
                     b.HasOne("QueryBuilder.Domain.Entities.DashboardWidget", "DashboardWidget")
                         .WithMany("ParameterMappings")
@@ -796,7 +799,7 @@ namespace QueryBuilder.Web.Data.Migrations
                     b.HasOne("QueryBuilder.Domain.Entities.Query", "Query")
                         .WithMany()
                         .HasForeignKey("QueryId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("DashboardWidget");

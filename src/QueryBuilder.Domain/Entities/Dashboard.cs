@@ -9,4 +9,5 @@ public class Dashboard
     public DateTimeOffset UpdatedAt { get; set; }
 
     public ICollection<DashboardWidget> Widgets { get; set; } = new List<DashboardWidget>();
+    public ICollection<DashboardParameterControl> ParameterControls { get; set; } = new List<DashboardParameterControl>();
 }

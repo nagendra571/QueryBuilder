@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using QueryBuilder.Domain.Entities;
 using QueryBuilder.Web.Data;
 using QueryBuilder.Web.Models.Queries;
@@ -19,19 +20,22 @@ public class QueriesController : Controller
     private readonly QueryRunner _queryRunner;
     private readonly PermissionService _permissionService;
     private readonly SchemaBrowserService _schemaBrowserService;
+    private readonly IQueryParameterService _parameterService;
 
     public QueriesController(
         ApplicationDbContext dbContext,
         UserManager<IdentityUser> userManager,
         QueryRunner queryRunner,
         PermissionService permissionService,
-        SchemaBrowserService schemaBrowserService)
+        SchemaBrowserService schemaBrowserService,
+        IQueryParameterService parameterService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _queryRunner = queryRunner;
         _permissionService = permissionService;
         _schemaBrowserService = schemaBrowserService;
+        _parameterService = parameterService;
     }
 
     public async Task<IActionResult> Index()
@@ -69,6 +73,7 @@ public class QueriesController : Controller
     public async Task<IActionResult> Create()
     {
         await LoadDataSourcesAsync();
+        await LoadParameterQueriesAsync();
         return View(new QueryEditViewModel());
     }
 
@@ -78,6 +83,8 @@ public class QueriesController : Controller
     public async Task<IActionResult> Create(QueryEditViewModel model)
     {
         await LoadDataSourcesAsync();
+        await LoadParameterQueriesAsync();
+        model.ParameterValues ??= new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
         if (string.Equals(model.SubmitAction, "run", StringComparison.OrdinalIgnoreCase))
         {
@@ -88,7 +95,9 @@ public class QueriesController : Controller
                 return View(model);
             }
 
-            model.Result = await RunQueryAsync(model.DataSourceId!.Value, model.SqlText, null);
+            model.Result = await RunQueryAsync(model.DataSourceId!.Value, model.SqlText, null, model.ParameterValues);
+            model.ParameterDefinitions = Array.Empty<QueryParameterDefinitionViewModel>();
+            model.ParsedTokens = QueryParameterParser.ExtractTokens(model.SqlText);
             return View(model);
         }
 
@@ -128,6 +137,7 @@ public class QueriesController : Controller
         }
 
         await LoadDataSourcesAsync();
+        await LoadParameterQueriesAsync(query.Id);
         var visualizations = await _dbContext.Visualizations
             .AsNoTracking()
             .Where(v => v.QueryId == query.Id)
@@ -150,6 +160,7 @@ public class QueriesController : Controller
             ShareSection = await BuildShareSectionAsync(ShareEntityType.Query, query.Id)
         };
 
+        await PopulateParameterModelAsync(model, query.Id);
         return View(model);
     }
 
@@ -165,6 +176,9 @@ public class QueriesController : Controller
         }
 
         await LoadDataSourcesAsync();
+        await LoadParameterQueriesAsync(query.Id);
+        model.ParameterValues ??= new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        await PopulateParameterModelAsync(model, query.Id);
 
         if (string.Equals(model.SubmitAction, "run", StringComparison.OrdinalIgnoreCase))
         {
@@ -175,7 +189,7 @@ public class QueriesController : Controller
                 return View(model);
             }
 
-            model.Result = await RunQueryAsync(model.DataSourceId!.Value, model.SqlText, query.Id);
+            model.Result = await RunQueryAsync(model.DataSourceId!.Value, model.SqlText, query.Id, model.ParameterValues);
             model.Visualizations = await _dbContext.Visualizations
                 .AsNoTracking()
                 .Where(v => v.QueryId == query.Id)
@@ -290,6 +304,47 @@ public class QueriesController : Controller
         return Json(result);
     }
 
+    [HttpGet]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> ParameterQueryPreview(int queryId)
+    {
+        if (queryId <= 0)
+        {
+            return BadRequest();
+        }
+
+        if (!await _permissionService.CanViewQueryAsync(User, queryId))
+        {
+            return Forbid();
+        }
+
+        var query = await _dbContext.Queries
+            .AsNoTracking()
+            .FirstOrDefaultAsync(q => q.Id == queryId);
+        if (query == null)
+        {
+            return NotFound();
+        }
+
+        var result = await _queryRunner.RunAsync(query.DataSourceId, query.SqlText);
+        if (!result.Success)
+        {
+            return Ok(new { success = false, errorMessage = result.ErrorMessage ?? "Failed to load values." });
+        }
+
+        var options = result.Rows
+            .Take(25)
+            .Select(row => new
+            {
+                label = row.Count > 0 ? row[0] : string.Empty,
+                value = row.Count > 1 ? row[1] : (row.Count > 0 ? row[0] : string.Empty)
+            })
+            .Where(option => !string.IsNullOrWhiteSpace(option.label))
+            .ToList();
+
+        return Ok(new { success = true, options });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "Admin,Editor")]
@@ -353,6 +408,82 @@ public class QueriesController : Controller
         return RedirectToAction(nameof(Edit), new { id });
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> AddParameterDefinition(int id, QueryParameterDefinitionInputModel model)
+    {
+        var query = await _dbContext.Queries.FirstOrDefaultAsync(q => q.Id == id);
+        if (query == null)
+        {
+            return NotFound();
+        }
+
+        var name = model.Name.Trim();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(name, "^[a-zA-Z0-9_]+$"))
+        {
+            TempData["StatusMessage"] = "Parameter name must be alphanumeric or underscore.";
+            return RedirectToAction(nameof(Edit), new { id });
+        }
+
+        var definition = await _dbContext.QueryParameterDefinitions
+            .FirstOrDefaultAsync(p => p.QueryId == id && p.Name == name);
+
+        if (definition == null)
+        {
+            definition = new QueryParameterDefinition
+            {
+                QueryId = id,
+                Name = name,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            _dbContext.QueryParameterDefinitions.Add(definition);
+        }
+
+        definition.Title = string.IsNullOrWhiteSpace(model.Title) ? name : model.Title.Trim();
+        definition.Type = model.Type;
+        definition.DefaultValue = model.DefaultValue;
+        definition.SettingsJson = string.IsNullOrWhiteSpace(model.SettingsJson) ? "{}" : model.SettingsJson;
+        definition.IsRequired = model.IsRequired;
+        definition.UpdatedAt = DateTimeOffset.UtcNow;
+
+        if (!query.SqlText.Contains($"{{{{{name}}}}}", StringComparison.OrdinalIgnoreCase))
+        {
+            if (model.Type == QueryParameterType.DateRange || model.Type == QueryParameterType.DateTimeRange)
+            {
+                query.SqlText = $"{EnsureWhereClause(query.SqlText)}\n-- {name} range\n-- AND [YourDateColumn] >= {{%{name}.start%}}\n-- AND [YourDateColumn] <= {{%{name}.end%}}"
+                    .Replace("{%", "{{")
+                    .Replace("%}", "}}");
+            }
+            else
+            {
+                query.SqlText = $"{EnsureWhereClause(query.SqlText)}\n-- parameter {name}\n-- AND [YourColumn] = {{{{{name}}}}}";
+            }
+        }
+
+        await _dbContext.SaveChangesAsync();
+        TempData["StatusMessage"] = "Parameter saved.";
+        return RedirectToAction(nameof(Edit), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> RemoveParameterDefinition(int id, int parameterId)
+    {
+        var definition = await _dbContext.QueryParameterDefinitions
+            .FirstOrDefaultAsync(p => p.Id == parameterId && p.QueryId == id);
+        if (definition == null)
+        {
+            return NotFound();
+        }
+
+        _dbContext.QueryParameterDefinitions.Remove(definition);
+        await _dbContext.SaveChangesAsync();
+        TempData["StatusMessage"] = "Parameter removed.";
+        return RedirectToAction(nameof(Edit), new { id });
+    }
+
     private async Task LoadDataSourcesAsync()
     {
         var dataSources = await _dbContext.DataSources
@@ -362,6 +493,39 @@ public class QueriesController : Controller
             .ToListAsync();
 
         ViewData["DataSources"] = new SelectList(dataSources, nameof(DataSource.Id), nameof(DataSource.Name));
+    }
+
+    private async Task LoadParameterQueriesAsync(int? excludeQueryId = null)
+    {
+        IQueryable<Query> queryable = _dbContext.Queries.AsNoTracking();
+
+        if (!User.IsInRole("Admin") && !User.IsInRole("Editor"))
+        {
+            var allowedIds = await _permissionService.GetAccessibleQueryIdsAsync(User);
+            if (allowedIds.Count == 0)
+            {
+                ViewBag.ParameterQueries = new List<SelectListItem>();
+                return;
+            }
+
+            queryable = queryable.Where(q => allowedIds.Contains(q.Id));
+        }
+
+        if (excludeQueryId.HasValue)
+        {
+            queryable = queryable.Where(q => q.Id != excludeQueryId.Value);
+        }
+
+        var queries = await queryable
+            .OrderBy(q => q.Name)
+            .Select(q => new SelectListItem
+            {
+                Value = q.Id.ToString(),
+                Text = q.Name
+            })
+            .ToListAsync();
+
+        ViewBag.ParameterQueries = queries;
     }
 
     private async Task<ShareSectionViewModel> BuildShareSectionAsync(ShareEntityType entityType, int entityId)
@@ -465,9 +629,199 @@ public class QueriesController : Controller
         return true;
     }
 
-    private async Task<QueryResultViewModel> RunQueryAsync(int dataSourceId, string sqlText, int? queryId)
+    private static string EnsureWhereClause(string sql)
     {
-        var result = await _queryRunner.RunAsync(dataSourceId, sqlText);
+        var trimmed = sql.TrimEnd();
+        if (trimmed.IndexOf("where", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return trimmed;
+        }
+
+        return $"{trimmed}\nWHERE 1=1";
+    }
+
+    private async Task PopulateParameterModelAsync(QueryEditViewModel model, int queryId)
+    {
+        var definitions = await _dbContext.QueryParameterDefinitions
+            .AsNoTracking()
+            .Where(d => d.QueryId == queryId)
+            .OrderBy(d => d.Name)
+            .ToListAsync();
+
+        var definitionModels = new List<QueryParameterDefinitionViewModel>();
+        foreach (var definition in definitions)
+        {
+            definitionModels.Add(new QueryParameterDefinitionViewModel
+            {
+                Id = definition.Id,
+                Name = definition.Name,
+                Title = string.IsNullOrWhiteSpace(definition.Title) ? definition.Name : definition.Title,
+                Type = definition.Type,
+                DefaultValue = definition.DefaultValue,
+                IsRequired = definition.IsRequired,
+                SettingsJson = definition.SettingsJson,
+                Options = await BuildOptionsAsync(definition)
+            });
+        }
+
+        model.ParameterDefinitions = definitionModels;
+        model.ParsedTokens = QueryParameterParser.ExtractTokens(model.SqlText);
+
+        var tokenInfo = model.ParsedTokens
+            .Select(token =>
+            {
+                var parts = token.Split('.', 2, StringSplitOptions.RemoveEmptyEntries);
+                return new
+                {
+                    Name = parts[0],
+                    Suffix = parts.Length == 2 ? parts[1] : null
+                };
+            })
+            .GroupBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Any(t => string.Equals(t.Suffix, "start", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(t.Suffix, "end", StringComparison.OrdinalIgnoreCase)),
+                StringComparer.OrdinalIgnoreCase);
+
+        foreach (var token in tokenInfo)
+        {
+            if (definitionModels.Any(d => string.Equals(d.Name, token.Key, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            definitionModels.Add(new QueryParameterDefinitionViewModel
+            {
+                Id = 0,
+                Name = token.Key,
+                Title = token.Key,
+                Type = token.Value ? QueryParameterType.DateRange : QueryParameterType.Text,
+                DefaultValue = null,
+                IsRequired = false,
+                SettingsJson = "{}",
+                Options = new List<QueryParameterOptionViewModel>()
+            });
+        }
+
+        foreach (var definition in definitionModels)
+        {
+            if (!model.ParameterValues.ContainsKey(definition.Name))
+            {
+                model.ParameterValues[definition.Name] = definition.DefaultValue;
+            }
+
+            if (definition.Type == QueryParameterType.DateRange || definition.Type == QueryParameterType.DateTimeRange)
+            {
+                var startKey = $"{definition.Name}.start";
+                var endKey = $"{definition.Name}.end";
+                if (!model.ParameterValues.ContainsKey(startKey))
+                {
+                    model.ParameterValues[startKey] = null;
+                }
+                if (!model.ParameterValues.ContainsKey(endKey))
+                {
+                    model.ParameterValues[endKey] = null;
+                }
+            }
+        }
+    }
+
+    private async Task<IReadOnlyList<QueryParameterOptionViewModel>> BuildOptionsAsync(QueryParameterDefinition definition)
+    {
+        var options = new List<QueryParameterOptionViewModel>();
+        if (string.IsNullOrWhiteSpace(definition.SettingsJson))
+        {
+            return options;
+        }
+
+        using var document = JsonDocument.Parse(definition.SettingsJson);
+        if (document.RootElement.TryGetProperty("options", out var optionsElement) &&
+            optionsElement.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var option in optionsElement.EnumerateArray())
+            {
+                var label = option.TryGetProperty("label", out var labelElement)
+                    ? labelElement.GetString() ?? string.Empty
+                    : option.TryGetProperty("value", out var valueElement)
+                        ? valueElement.GetString() ?? string.Empty
+                        : string.Empty;
+                var value = option.TryGetProperty("value", out var valueElement2)
+                    ? valueElement2.GetString() ?? string.Empty
+                    : label;
+
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    options.Add(new QueryParameterOptionViewModel
+                    {
+                        Label = string.IsNullOrWhiteSpace(label) ? value : label,
+                        Value = value
+                    });
+                }
+            }
+        }
+        else if (document.RootElement.TryGetProperty("sourceQueryId", out var queryIdElement) &&
+                 queryIdElement.TryGetInt32(out var sourceQueryId))
+        {
+            var query = await _dbContext.Queries.AsNoTracking().FirstOrDefaultAsync(q => q.Id == sourceQueryId);
+            if (query == null)
+            {
+                return options;
+            }
+
+            var result = await _queryRunner.RunAsync(query.DataSourceId, query.SqlText);
+            if (!result.Success)
+            {
+                return options;
+            }
+
+            foreach (var row in result.Rows)
+            {
+                if (row.Count == 0) continue;
+                var label = row[0] ?? string.Empty;
+                var value = row.Count > 1 ? row[1] ?? label : label;
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    options.Add(new QueryParameterOptionViewModel
+                    {
+                        Label = string.IsNullOrWhiteSpace(label) ? value : label,
+                        Value = value
+                    });
+                }
+            }
+        }
+
+        return options;
+    }
+
+    private async Task<QueryResultViewModel> RunQueryAsync(int dataSourceId, string sqlText, int? queryId, Dictionary<string, string?>? parameterValues)
+    {
+        var definitions = queryId.HasValue
+            ? await _dbContext.QueryParameterDefinitions
+                .AsNoTracking()
+                .Where(p => p.QueryId == queryId.Value)
+                .ToListAsync()
+            : new List<QueryParameterDefinition>();
+
+        var allowText = User.IsInRole("Admin") || User.IsInRole("Editor");
+        var applyResult = await _parameterService.ApplyAsync(new QueryParameterApplyRequest
+        {
+            Sql = sqlText,
+            Definitions = definitions,
+            Values = parameterValues ?? new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+            AllowText = allowText
+        });
+
+        if (!applyResult.Success)
+        {
+            return new QueryResultViewModel
+            {
+                Success = false,
+                ErrorMessage = string.Join(" ", applyResult.Errors)
+            };
+        }
+
+        var result = await _queryRunner.RunAsync(dataSourceId, applyResult.Sql);
         var execution = new QueryExecution
         {
             QueryId = queryId ?? 0,
@@ -475,7 +829,8 @@ public class QueriesController : Controller
             Status = result.Success ? QueryExecutionStatus.Success : QueryExecutionStatus.Failed,
             DurationMs = result.DurationMs,
             RowCount = result.RowCount,
-            ErrorMessage = result.Success ? null : result.ErrorMessage
+            ErrorMessage = result.Success ? null : result.ErrorMessage,
+            ParametersJson = applyResult.AppliedValues.Count > 0 ? JsonSerializer.Serialize(applyResult.AppliedValues) : null
         };
 
         if (queryId.HasValue)
