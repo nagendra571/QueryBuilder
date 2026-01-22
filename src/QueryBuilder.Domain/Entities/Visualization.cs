@@ -5,7 +5,9 @@ public enum VisualizationType
     Table = 1,
     Line = 2,
     Bar = 3,
-    Pie = 4
+    Pie = 4,
+    FloatingBar = 5,
+    HorizontalBar = 6
 }
 
 public class Visualization

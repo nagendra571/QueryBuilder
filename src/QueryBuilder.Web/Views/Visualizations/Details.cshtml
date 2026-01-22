@@ -85,9 +85,15 @@ else
             xColumn: "@(Model.Config.XColumn ?? string.Empty)",
             yColumn: "@(Model.Config.YColumn ?? string.Empty)",
             yColumns: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Config.YColumns)),
+            useHorizontalBars: @Model.Config.UseHorizontalBars.ToString().ToLowerInvariant(),
+            useStackedBars: @Model.Config.UseStackedBars.ToString().ToLowerInvariant(),
+            useFloatingBars: @Model.Config.UseFloatingBars.ToString().ToLowerInvariant(),
+            rangeStartColumn: "@(Model.Config.RangeStartColumn ?? string.Empty)",
+            rangeEndColumn: "@(Model.Config.RangeEndColumn ?? string.Empty)",
             labelColumn: "@(Model.Config.LabelColumn ?? string.Empty)",
             valueColumn: "@(Model.Config.ValueColumn ?? string.Empty)",
-            showLegend: @Model.Config.ShowLegend.ToString().ToLowerInvariant()
+            showLegend: @Model.Config.ShowLegend.ToString().ToLowerInvariant(),
+            lineInterpolationMode: "@(Model.Config.LineInterpolationMode ?? "default")"
         };
     </script>
 }

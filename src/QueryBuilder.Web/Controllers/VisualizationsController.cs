@@ -79,6 +79,10 @@ public class VisualizationsController : Controller
             ShowLegend = true,
             IsAutoRefreshEnabled = false,
             AutoRefreshIntervalSeconds = null,
+            UseHorizontalBars = false,
+            UseFloatingBars = false,
+            UseStackedBars = false,
+            LineInterpolationMode = "default",
             ParameterDefinitions = definitions,
             ParameterValues = parameterValues
         };
@@ -163,10 +167,16 @@ public class VisualizationsController : Controller
             XColumn = model.XColumn,
             YColumn = model.YColumn,
             YColumns = model.YColumns,
+            UseHorizontalBars = model.UseHorizontalBars || model.Type == VisualizationType.HorizontalBar,
+            UseStackedBars = model.UseStackedBars,
+            UseFloatingBars = model.UseFloatingBars || model.Type == VisualizationType.FloatingBar,
+            RangeStartColumn = model.RangeStartColumn,
+            RangeEndColumn = model.RangeEndColumn,
             LabelColumn = model.LabelColumn,
             ValueColumn = model.ValueColumn,
             GroupByColumn = model.GroupByColumn,
-            ShowLegend = model.ShowLegend
+            ShowLegend = model.ShowLegend,
+            LineInterpolationMode = model.LineInterpolationMode
         };
 
         var visualization = new Visualization
@@ -239,10 +249,16 @@ public class VisualizationsController : Controller
             XColumn = config.XColumn,
             YColumn = config.YColumn,
             YColumns = config.YColumns.Count > 0 ? config.YColumns : (string.IsNullOrWhiteSpace(config.YColumn) ? new List<string>() : new List<string> { config.YColumn }),
+            UseHorizontalBars = config.UseHorizontalBars || visualization.Type == VisualizationType.HorizontalBar,
+            UseStackedBars = config.UseStackedBars,
+            UseFloatingBars = config.UseFloatingBars || visualization.Type == VisualizationType.FloatingBar,
+            RangeStartColumn = config.RangeStartColumn,
+            RangeEndColumn = config.RangeEndColumn,
             LabelColumn = config.LabelColumn,
             ValueColumn = config.ValueColumn,
             GroupByColumn = config.GroupByColumn,
             ShowLegend = config.ShowLegend,
+            LineInterpolationMode = string.IsNullOrWhiteSpace(config.LineInterpolationMode) ? "default" : config.LineInterpolationMode,
             Columns = result.Columns,
             IsAutoRefreshEnabled = visualization.IsAutoRefreshEnabled,
             AutoRefreshIntervalSeconds = visualization.AutoRefreshIntervalSeconds,
@@ -338,10 +354,16 @@ public class VisualizationsController : Controller
             XColumn = model.XColumn,
             YColumn = model.YColumn,
             YColumns = model.YColumns,
+            UseHorizontalBars = model.UseHorizontalBars || model.Type == VisualizationType.HorizontalBar,
+            UseStackedBars = model.UseStackedBars,
+            UseFloatingBars = model.UseFloatingBars || model.Type == VisualizationType.FloatingBar,
+            RangeStartColumn = model.RangeStartColumn,
+            RangeEndColumn = model.RangeEndColumn,
             LabelColumn = model.LabelColumn,
             ValueColumn = model.ValueColumn,
             GroupByColumn = model.GroupByColumn,
-            ShowLegend = model.ShowLegend
+            ShowLegend = model.ShowLegend,
+            LineInterpolationMode = model.LineInterpolationMode
         };
 
         visualization.Name = model.Name.Trim();

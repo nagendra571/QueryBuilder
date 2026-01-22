@@ -236,9 +236,15 @@
                 xColumn: "@(widget.Config.XColumn ?? string.Empty)",
                 yColumn: "@(widget.Config.YColumn ?? string.Empty)",
                 yColumns: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(widget.Config.YColumns)),
+                useHorizontalBars: @widget.Config.UseHorizontalBars.ToString().ToLowerInvariant(),
+                useStackedBars: @widget.Config.UseStackedBars.ToString().ToLowerInvariant(),
+                useFloatingBars: @widget.Config.UseFloatingBars.ToString().ToLowerInvariant(),
+                rangeStartColumn: "@(widget.Config.RangeStartColumn ?? string.Empty)",
+                rangeEndColumn: "@(widget.Config.RangeEndColumn ?? string.Empty)",
                 labelColumn: "@(widget.Config.LabelColumn ?? string.Empty)",
                 valueColumn: "@(widget.Config.ValueColumn ?? string.Empty)",
-                showLegend: @widget.Config.ShowLegend.ToString().ToLowerInvariant()
+                showLegend: @widget.Config.ShowLegend.ToString().ToLowerInvariant(),
+                lineInterpolationMode: "@(widget.Config.LineInterpolationMode ?? "default")"
             });
             </text>
         }
@@ -342,9 +348,13 @@
                     xColumn: widget.xColumn,
                     yColumn: widget.yColumn,
                     yColumns: widget.yColumns,
+                    useHorizontalBars: widget.useHorizontalBars,
+                    useStackedBars: widget.useStackedBars,
+                    useFloatingBars: widget.useFloatingBars,
                     labelColumn: widget.labelColumn,
                     valueColumn: widget.valueColumn,
-                    showLegend: widget.showLegend
+                    showLegend: widget.showLegend,
+                    lineInterpolationMode: widget.lineInterpolationMode
                 });
             }
 

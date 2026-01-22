@@ -101,9 +101,46 @@
                         </div>
                     </div>
                     <div class="tab-pane fade" id="vizYAxis" role="tabpanel">
+                        <div class="border rounded-3 p-3 bg-light mb-3 @(Model.Type == QueryBuilder.Domain.Entities.VisualizationType.Bar || Model.Type == QueryBuilder.Domain.Entities.VisualizationType.FloatingBar || Model.Type == QueryBuilder.Domain.Entities.VisualizationType.HorizontalBar ? "" : "d-none")" id="floatingBarSettings">
+                            <div class="form-check form-switch mb-2">
+                                <input asp-for="UseHorizontalBars" class="form-check-input" id="horizontalBarsToggle" />
+                                <label asp-for="UseHorizontalBars" class="form-check-label"></label>
+                            </div>
+                            <div class="form-check form-switch mb-2">
+                                <input asp-for="UseStackedBars" class="form-check-input" id="stackedBarsToggle" />
+                                <label asp-for="UseStackedBars" class="form-check-label"></label>
+                            </div>
+                            <div class="form-check form-switch mb-2">
+                                <input asp-for="UseFloatingBars" class="form-check-input" id="floatingBarsToggle" />
+                                <label asp-for="UseFloatingBars" class="form-check-label"></label>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label asp-for="RangeStartColumn" class="form-label"></label>
+                                    <select asp-for="RangeStartColumn" class="form-select">
+                                        <option value="">--</option>
+                                        @foreach (var column in Model.Columns)
+                                        {
+                                            <option value="@column">@column</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="RangeEndColumn" class="form-label"></label>
+                                    <select asp-for="RangeEndColumn" class="form-select">
+                                        <option value="">--</option>
+                                        @foreach (var column in Model.Columns)
+                                        {
+                                            <option value="@column">@column</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-text">Use two columns to render floating bar ranges.</div>
+                        </div>
                         <div class="mb-3">
                             <label asp-for="YColumns" class="form-label"></label>
-                            <select asp-for="YColumns" class="form-select" multiple size="6">
+                            <select asp-for="YColumns" class="form-select" multiple size="6" id="yColumnsSelect">
                                 @foreach (var column in Model.Columns)
                                 {
                                     <option value="@column" selected="@(Model.YColumns.Contains(column) ? "selected" : null)">@column</option>
@@ -113,6 +150,15 @@
                         </div>
                     </div>
                     <div class="tab-pane fade" id="vizSeries" role="tabpanel">
+                        <div class="border rounded-3 p-3 bg-light mb-3 @(Model.Type == QueryBuilder.Domain.Entities.VisualizationType.Line ? "" : "d-none")" id="lineInterpolationPanel">
+                            <label asp-for="LineInterpolationMode" class="form-label"></label>
+                            <select asp-for="LineInterpolationMode" class="form-select" id="lineInterpolationSelect">
+                                <option value="default">Default</option>
+                                <option value="monotone">Monotone</option>
+                                <option value="linear">Linear</option>
+                            </select>
+                            <div class="form-text">Controls how line segments are interpolated between points.</div>
+                        </div>
                         <div class="mb-3">
                             <label asp-for="LabelColumn" class="form-label"></label>
                             <select asp-for="LabelColumn" class="form-select">
@@ -180,5 +226,59 @@
             updateIntervalState();
             autoRefreshToggle.addEventListener('change', updateIntervalState);
         }
+    </script>
+    <script>
+        const typeSelect = document.getElementById('Type');
+        const floatingToggle = document.getElementById('floatingBarsToggle');
+        const floatingPanel = document.getElementById('floatingBarSettings');
+        const horizontalToggle = document.getElementById('horizontalBarsToggle');
+        const stackedToggle = document.getElementById('stackedBarsToggle');
+        const yColumnsSelect = document.getElementById('yColumnsSelect');
+        const lineInterpolationPanel = document.getElementById('lineInterpolationPanel');
+        const lineInterpolationSelect = document.getElementById('lineInterpolationSelect');
+
+        const updateFloatingState = () => {
+            if (!typeSelect || !floatingPanel || !floatingToggle || !horizontalToggle || !stackedToggle) return;
+            const type = typeSelect.value;
+            const isBarFamily = type === 'Bar' || type === 'FloatingBar' || type === 'HorizontalBar';
+            floatingPanel.classList.toggle('d-none', !isBarFamily);
+            if (lineInterpolationPanel) {
+                lineInterpolationPanel.classList.toggle('d-none', type !== 'Line');
+                if (type !== 'Line' && lineInterpolationSelect) {
+                    lineInterpolationSelect.value = 'default';
+                }
+            }
+            if (!isBarFamily) {
+                horizontalToggle.checked = false;
+                horizontalToggle.disabled = false;
+                stackedToggle.checked = false;
+                stackedToggle.disabled = true;
+                floatingToggle.checked = false;
+                floatingToggle.disabled = false;
+                if (yColumnsSelect) yColumnsSelect.disabled = false;
+                return;
+            }
+
+            if (type === 'FloatingBar') {
+                floatingToggle.checked = true;
+                floatingToggle.disabled = true;
+            } else {
+                floatingToggle.disabled = false;
+            }
+            if (type === 'HorizontalBar') {
+                horizontalToggle.checked = true;
+                horizontalToggle.disabled = true;
+            } else {
+                horizontalToggle.disabled = false;
+            }
+            stackedToggle.disabled = false;
+            if (yColumnsSelect) yColumnsSelect.disabled = floatingToggle.checked;
+        };
+
+        typeSelect?.addEventListener('change', updateFloatingState);
+        floatingToggle?.addEventListener('change', updateFloatingState);
+        horizontalToggle?.addEventListener('change', updateFloatingState);
+        stackedToggle?.addEventListener('change', updateFloatingState);
+        updateFloatingState();
     </script>
 }
