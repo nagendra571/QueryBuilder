@@ -25,6 +25,21 @@ public class VisualizationEditViewModel
     [Display(Name = "Y Columns")]
     public List<string> YColumns { get; set; } = new();
 
+    [Display(Name = "Horizontal Bars")]
+    public bool UseHorizontalBars { get; set; }
+
+    [Display(Name = "Floating Bars")]
+    public bool UseFloatingBars { get; set; }
+
+    [Display(Name = "Stacked Bars")]
+    public bool UseStackedBars { get; set; }
+
+    [Display(Name = "Range Start Column")]
+    public string? RangeStartColumn { get; set; }
+
+    [Display(Name = "Range End Column")]
+    public string? RangeEndColumn { get; set; }
+
     [Display(Name = "Label Column")]
     public string? LabelColumn { get; set; }
 
@@ -36,6 +51,9 @@ public class VisualizationEditViewModel
 
     [Display(Name = "Show Legend")]
     public bool ShowLegend { get; set; } = true;
+
+    [Display(Name = "Line Interpolation")]
+    public string LineInterpolationMode { get; set; } = "default";
 
     [Display(Name = "Auto Refresh")]
     public bool IsAutoRefreshEnabled { get; set; }

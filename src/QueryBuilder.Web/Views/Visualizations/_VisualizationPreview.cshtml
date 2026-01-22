@@ -60,9 +60,15 @@ else
             xColumn: "@(Model.XColumn ?? string.Empty)",
             yColumn: "@(Model.YColumn ?? string.Empty)",
             yColumns: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.YColumns)),
+            useHorizontalBars: @Model.UseHorizontalBars.ToString().ToLowerInvariant(),
+            useStackedBars: @Model.UseStackedBars.ToString().ToLowerInvariant(),
+            useFloatingBars: @Model.UseFloatingBars.ToString().ToLowerInvariant(),
+            rangeStartColumn: "@(Model.RangeStartColumn ?? string.Empty)",
+            rangeEndColumn: "@(Model.RangeEndColumn ?? string.Empty)",
             labelColumn: "@(Model.LabelColumn ?? string.Empty)",
             valueColumn: "@(Model.ValueColumn ?? string.Empty)",
-            showLegend: @Model.ShowLegend.ToString().ToLowerInvariant()
+            showLegend: @Model.ShowLegend.ToString().ToLowerInvariant(),
+            lineInterpolationMode: "@(Model.LineInterpolationMode ?? "default")"
         };
     </script>
 }

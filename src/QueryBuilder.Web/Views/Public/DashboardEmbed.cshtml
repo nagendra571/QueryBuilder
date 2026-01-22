@@ -153,7 +153,8 @@
                 yColumns: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(widget.Config.YColumns)),
                 labelColumn: "@(widget.Config.LabelColumn ?? string.Empty)",
                 valueColumn: "@(widget.Config.ValueColumn ?? string.Empty)",
-                showLegend: @widget.Config.ShowLegend.ToString().ToLowerInvariant()
+                showLegend: @widget.Config.ShowLegend.ToString().ToLowerInvariant(),
+                lineInterpolationMode: "@(widget.Config.LineInterpolationMode ?? "default")"
             });
             </text>
         }
@@ -217,7 +218,8 @@
                     yColumns: widget.yColumns,
                     labelColumn: widget.labelColumn,
                     valueColumn: widget.valueColumn,
-                    showLegend: widget.showLegend
+                    showLegend: widget.showLegend,
+                    lineInterpolationMode: widget.lineInterpolationMode
                 });
             }
 
