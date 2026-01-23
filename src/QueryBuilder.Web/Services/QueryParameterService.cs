@@ -32,17 +32,25 @@ public class QueryParameterService : IQueryParameterService
         }
 
         var definitions = request.Definitions
-            .GroupBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+            .GroupBy(d => NormalizeKey(d.Name))
+            .ToDictionary(g => g.Key, g => g.First());
 
         var replacements = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var token in tokens)
         {
             var (baseName, suffix) = SplitToken(token);
-            if (!definitions.TryGetValue(baseName, out var definition))
+            var normalizedBase = NormalizeKey(baseName);
+            if (!definitions.TryGetValue(normalizedBase, out var definition))
             {
-                result.Errors.Add($"Unknown parameter '{baseName}'.");
-                continue;
+                definition = new QueryParameterDefinition
+                {
+                    Name = normalizedBase,
+                    Title = baseName,
+                    Type = suffix is "start" or "end" ? QueryParameterType.DateRange : QueryParameterType.Text,
+                    DefaultValue = null,
+                    IsRequired = false,
+                    SettingsJson = "{}"
+                };
             }
 
             if (suffix != null && !IsRangeToken(definition.Type))
@@ -58,10 +66,7 @@ public class QueryParameterService : IQueryParameterService
 
             if (string.IsNullOrWhiteSpace(value))
             {
-                if (definition.IsRequired)
-                {
-                    result.Errors.Add($"Parameter '{baseName}' is required.");
-                }
+                result.Errors.Add($"Missing parameter value: {NormalizeKey(valueKey)}");
                 continue;
             }
 
@@ -69,7 +74,7 @@ public class QueryParameterService : IQueryParameterService
             if (formatted != null)
             {
                 replacements[token] = formatted;
-                result.AppliedValues[valueKey] = value;
+                result.AppliedValues[NormalizeKey(valueKey)] = value;
             }
         }
 
@@ -109,7 +114,7 @@ public class QueryParameterService : IQueryParameterService
     private static (string baseName, string? suffix) SplitToken(string token)
     {
         var parts = token.Split('.', 2, StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length == 2 ? (parts[0], parts[1]) : (token, null);
+        return parts.Length == 2 ? (parts[0], parts[1].ToLowerInvariant()) : (token, null);
     }
 
     private static bool IsRangeToken(QueryParameterType type)
@@ -248,6 +253,11 @@ public class QueryParameterService : IQueryParameterService
     private static string EscapeSql(string value)
     {
         return value.Replace("'", "''");
+    }
+
+    private static string NormalizeKey(string value)
+    {
+        return value.Trim().ToLowerInvariant();
     }
 
     private static bool IsSafeSelect(string sql)

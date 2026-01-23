@@ -39,7 +39,7 @@ public class VisualizationsController : Controller
             return NotFound();
         }
 
-        var definitions = await BuildParameterDefinitionsAsync(query.Id);
+        var definitions = await BuildParameterDefinitionsAsync(query.Id, query.SqlText);
         var parameterValues = await GetLatestParameterValuesAsync(query.Id);
         var applyResult = await _parameterService.ApplyAsync(new QueryParameterApplyRequest
         {
@@ -101,7 +101,7 @@ public class VisualizationsController : Controller
             return NotFound();
         }
 
-        var definitions = await BuildParameterDefinitionsAsync(query.Id);
+        var definitions = await BuildParameterDefinitionsAsync(query.Id, query.SqlText);
         model.ParameterDefinitions = definitions;
 
         var applyResult = await _parameterService.ApplyAsync(new QueryParameterApplyRequest
@@ -207,7 +207,7 @@ public class VisualizationsController : Controller
             return NotFound();
         }
 
-        var definitions = await BuildParameterDefinitionsAsync(visualization.QueryId);
+        var definitions = await BuildParameterDefinitionsAsync(visualization.QueryId, visualization.Query.SqlText);
         var parameterValues = await GetLatestParameterValuesAsync(visualization.QueryId);
         var applyResult = await _parameterService.ApplyAsync(new QueryParameterApplyRequest
         {
@@ -287,7 +287,7 @@ public class VisualizationsController : Controller
             return NotFound();
         }
 
-        var definitions = await BuildParameterDefinitionsAsync(query.Id);
+        var definitions = await BuildParameterDefinitionsAsync(query.Id, query.SqlText);
         model.ParameterDefinitions = definitions;
 
         var applyResult = await _parameterService.ApplyAsync(new QueryParameterApplyRequest
@@ -532,7 +532,7 @@ public class VisualizationsController : Controller
         });
     }
 
-    private async Task<IReadOnlyList<QueryParameterDefinitionViewModel>> BuildParameterDefinitionsAsync(int queryId)
+    private async Task<IReadOnlyList<QueryParameterDefinitionViewModel>> BuildParameterDefinitionsAsync(int queryId, string sqlText)
     {
         var definitions = await _dbContext.QueryParameterDefinitions
             .AsNoTracking()
@@ -553,6 +553,43 @@ public class VisualizationsController : Controller
                 IsRequired = definition.IsRequired,
                 SettingsJson = definition.SettingsJson ?? "{}",
                 Options = await BuildOptionsAsync(definition)
+            });
+        }
+
+        var tokenInfo = QueryParameterParser.ExtractTokens(sqlText)
+            .Select(token =>
+            {
+                var parts = token.Split('.', 2, StringSplitOptions.RemoveEmptyEntries);
+                return new
+                {
+                    Name = parts[0],
+                    Suffix = parts.Length == 2 ? parts[1] : null
+                };
+            })
+            .GroupBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Any(t => string.Equals(t.Suffix, "start", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(t.Suffix, "end", StringComparison.OrdinalIgnoreCase)),
+                StringComparer.OrdinalIgnoreCase);
+
+        foreach (var token in tokenInfo)
+        {
+            if (definitionModels.Any(d => string.Equals(d.Name, token.Key, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            definitionModels.Add(new QueryParameterDefinitionViewModel
+            {
+                Id = 0,
+                Name = token.Key,
+                Title = token.Key,
+                Type = token.Value ? QueryParameterType.DateRange : QueryParameterType.Text,
+                DefaultValue = null,
+                IsRequired = false,
+                SettingsJson = "{}",
+                Options = new List<QueryParameterOptionViewModel>()
             });
         }
 

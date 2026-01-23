@@ -3,6 +3,9 @@
 @{
     ViewData["Title"] = ViewData["Title"] as string ?? "New Visualization";
     var actionLabel = Model.Id.HasValue ? "Edit" : "New";
+    var columns = Model.Columns.Count > 0
+        ? Model.Columns
+        : new List<string> { "?column?", "?column?1", "?column?2" };
 }
 
 <div class="viz-editor">
@@ -21,6 +24,13 @@
                 <input type="hidden" asp-for="QueryId" />
 
                 <partial name="_VisualizationParameters" model="Model" />
+
+                @if (Model.Result != null && !Model.Result.Success)
+                {
+                    <div class="alert alert-warning">
+                        @Model.Result.ErrorMessage
+                    </div>
+                }
 
                 <div class="mb-3">
                     <label asp-for="Name" class="form-label"></label>
@@ -82,7 +92,7 @@
                             <label asp-for="XColumn" class="form-label"></label>
                             <select asp-for="XColumn" class="form-select">
                                 <option value="">--</option>
-                                @foreach (var column in Model.Columns)
+                                @foreach (var column in columns)
                                 {
                                     <option value="@column">@column</option>
                                 }
@@ -92,7 +102,7 @@
                             <label asp-for="GroupByColumn" class="form-label"></label>
                             <select asp-for="GroupByColumn" class="form-select">
                                 <option value="">--</option>
-                                @foreach (var column in Model.Columns)
+                                @foreach (var column in columns)
                                 {
                                     <option value="@column">@column</option>
                                 }
@@ -119,7 +129,7 @@
                                     <label asp-for="RangeStartColumn" class="form-label"></label>
                                     <select asp-for="RangeStartColumn" class="form-select">
                                         <option value="">--</option>
-                                        @foreach (var column in Model.Columns)
+                                        @foreach (var column in columns)
                                         {
                                             <option value="@column">@column</option>
                                         }
@@ -129,7 +139,7 @@
                                     <label asp-for="RangeEndColumn" class="form-label"></label>
                                     <select asp-for="RangeEndColumn" class="form-select">
                                         <option value="">--</option>
-                                        @foreach (var column in Model.Columns)
+                                        @foreach (var column in columns)
                                         {
                                             <option value="@column">@column</option>
                                         }
@@ -141,7 +151,7 @@
                         <div class="mb-3">
                             <label asp-for="YColumns" class="form-label"></label>
                             <select asp-for="YColumns" class="form-select" multiple size="6" id="yColumnsSelect">
-                                @foreach (var column in Model.Columns)
+                                @foreach (var column in columns)
                                 {
                                     <option value="@column" selected="@(Model.YColumns.Contains(column) ? "selected" : null)">@column</option>
                                 }
@@ -163,7 +173,7 @@
                             <label asp-for="LabelColumn" class="form-label"></label>
                             <select asp-for="LabelColumn" class="form-select">
                                 <option value="">--</option>
-                                @foreach (var column in Model.Columns)
+                                @foreach (var column in columns)
                                 {
                                     <option value="@column">@column</option>
                                 }
@@ -173,7 +183,7 @@
                             <label asp-for="ValueColumn" class="form-label"></label>
                             <select asp-for="ValueColumn" class="form-select">
                                 <option value="">--</option>
-                                @foreach (var column in Model.Columns)
+                                @foreach (var column in columns)
                                 {
                                     <option value="@column">@column</option>
                                 }

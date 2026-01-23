@@ -56,20 +56,69 @@
                 <span asp-validation-for="SqlText" class="text-danger"></span>
                 <div class="form-text">MVP supports SELECT queries only.</div>
             </div>
-            @if (Model.Id.HasValue)
-            {
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <div class="query-section-label mb-0">Parameters</div>
+            <div class="sql-editor-actions">
+                <div class="sql-editor-actions-left">
+                    @if (Model.Id.HasValue)
+                    {
+                        <button class="btn btn-sm btn-light"
+                                type="button"
+                                data-bs-toggle="modal"
+                                data-bs-target="#addParameterModal"
+                                data-bs-toggle="tooltip"
+                                data-bs-title="Add parameter">
+                            {{ }}
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-light"
+                                type="button"
+                                disabled
+                                data-bs-toggle="tooltip"
+                                data-bs-title="Save the query to add parameters.">
+                            {{ }}
+                        </button>
+                    }
+                    <button class="btn btn-sm btn-light"
+                            type="button"
+                            id="formatSqlBtn"
+                            data-bs-toggle="tooltip"
+                            data-bs-title="Format SQL">
+                        <i class="bi bi-code-slash"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light"
+                            type="button"
+                            id="toggleAutocompleteBtn"
+                            data-bs-toggle="tooltip"
+                            data-bs-title="Toggle autocomplete">
+                        <i class="bi bi-lightning"></i>
+                    </button>
+                </div>
+                <div class="sql-editor-actions-right">
+                    <button class="btn btn-sm btn-outline-secondary" type="submit" name="SubmitAction" value="save">Save</button>
+                    <button class="btn btn-sm btn-primary" type="submit" name="SubmitAction" value="run">Execute</button>
+                </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="query-section-label mb-0">Parameters</div>
+                @if (Model.Id.HasValue)
+                {
                     <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#addParameterModal">
                         + Add Parameter
                     </button>
-                </div>
-                <partial name="_QueryParametersBar" model="Model" />
-            }
-            else
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-outline-primary" type="button" disabled title="Save the query to configure parameter settings.">
+                        + Add Parameter
+                    </button>
+                }
+            </div>
+            <partial name="_QueryParametersBar" model="Model" />
+            @if (!Model.Id.HasValue)
             {
-                <div class="alert alert-light border mt-3">
-                    Save the query to configure parameters.
+                <div class="form-text text-muted mt-2">
+                    Type {{param}} in SQL to add parameters. Save the query to configure parameter settings.
                 </div>
             }
         </div>
@@ -281,15 +330,15 @@
             const regex = /{{\s*([\w.]+)\s*}}/g;
             let match;
             while ((match = regex.exec(sql)) !== null) {
-                const raw = match[1];
+                const raw = match[1].trim();
                 const parts = raw.split(".");
-                const name = normalize(parts[0]);
+                const key = normalize(parts[0]);
                 const suffix = parts.length > 1 ? parts[1].toLowerCase() : null;
-                const info = tokens.get(name) || { name: parts[0], hasRange: false };
+                const info = tokens.get(key) || { name: parts[0], hasRange: false };
                 if (suffix === "start" || suffix === "end") {
                     info.hasRange = true;
                 }
-                tokens.set(name, info);
+                tokens.set(key, info);
             }
             return tokens;
         };
@@ -346,6 +395,10 @@
                 input.name = `ParameterValues[${info.name}]`;
                 input.placeholder = "Enter value";
                 card.appendChild(input);
+                const warning = document.createElement("div");
+                warning.className = "form-text text-warning";
+                warning.textContent = "Text parameters are unsafe for public links.";
+                card.appendChild(warning);
             }
 
             return card;
@@ -354,15 +407,14 @@
         const updateClientCards = (sql) => {
             if (!grid) return;
             const tokens = parseTokens(sql);
-            const existing = getExistingNames();
-
-            grid.querySelectorAll("[data-param-client='true']").forEach((card) => {
+            grid.querySelectorAll(".query-param-card").forEach((card) => {
                 const name = normalize(card.dataset.paramName || "");
                 if (!tokens.has(name)) {
                     card.remove();
                 }
             });
 
+            const existing = getExistingNames();
             tokens.forEach((info, key) => {
                 if (!existing.has(key)) {
                     const card = createClientCard(info);
@@ -460,11 +512,23 @@
                 </ul>
                 <div class="d-flex align-items-center gap-2">
                     <button class="btn btn-sm btn-outline-secondary" type="button" id="downloadCsvBtn">Download CSV</button>
-                    @if (Model.Id.HasValue)
+                    @if (Model.Id.HasValue && Model.Result.Success)
                     {
                         <a class="btn btn-sm btn-primary" asp-controller="Visualizations" asp-action="Create" asp-route-queryId="@Model.Id">+ New Visualization</a>
                     }
+                    else
+                    {
+                        <button class="btn btn-sm btn-primary" type="button" disabled title="Run and save the query before creating a visualization.">
+                            + New Visualization
+                        </button>
+                    }
                 </div>
+                @if (!Model.Id.HasValue || !Model.Result.Success)
+                {
+                    <div class="form-text text-muted mt-2">
+                        Save and successfully run the query to create a visualization.
+                    </div>
+                }
             </div>
             <div class="card-body tab-content">
                 <div class="tab-pane fade show active" id="tabTablePane" role="tabpanel">
@@ -534,6 +598,17 @@
         if (!toggle || !editor) return;
         toggle.addEventListener('change', () => {
             editor.classList.toggle('d-none', toggle.checked);
+        });
+    })();
+</script>
+
+<script>
+    (() => {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach((el) => {
+            if (window.bootstrap?.Tooltip) {
+                new bootstrap.Tooltip(el);
+            }
         });
     })();
 </script>
@@ -738,6 +813,120 @@
     })();
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/sql-formatter@15.4.6/dist/sql-formatter.min.js"></script>
+<script>
+    (() => {
+        const formatBtn = document.getElementById('formatSqlBtn');
+        if (!formatBtn) return;
+
+        const getSql = () => {
+            if (window.queryBuilderEditor) {
+                return window.queryBuilderEditor.state.doc.toString();
+            }
+            const input = document.getElementById('SqlText');
+            return input?.value || '';
+        };
+
+        const setSql = (value) => {
+            if (window.queryBuilderEditor) {
+                window.queryBuilderEditor.dispatch({
+                    changes: { from: 0, to: window.queryBuilderEditor.state.doc.length, insert: value }
+                });
+                window.queryBuilderEditor.focus();
+                return;
+            }
+            const input = document.getElementById('SqlText');
+            if (input) {
+                input.value = value;
+                input.focus();
+            }
+        };
+
+        formatBtn.addEventListener('click', () => {
+            const formatter = window.sqlFormatter?.format;
+            const inputSql = getSql();
+            let formatted = null;
+            if (typeof formatter === 'function') {
+                const tokens = [];
+                const tokenized = inputSql.replace(/{{\s*[^}]+\s*}}/g, (match) => {
+                    const key = `__QB_PARAM_${tokens.length}__`;
+                    tokens.push(match);
+                    return key;
+                });
+                formatted = formatter(tokenized, { language: 'tsql' });
+                if (formatted) {
+                    tokens.forEach((token, index) => {
+                        formatted = formatted.replaceAll(`__QB_PARAM_${index}__`, token);
+                    });
+                }
+            }
+            if (!formatted) {
+                const normalized = inputSql.replace(/\s+/g, ' ').trim();
+                const keywords = [
+                    'SELECT',
+                    'FROM',
+                    'WHERE',
+                    'GROUP BY',
+                    'ORDER BY',
+                    'HAVING',
+                    'JOIN',
+                    'LEFT JOIN',
+                    'RIGHT JOIN',
+                    'INNER JOIN',
+                    'OUTER JOIN',
+                    'UNION',
+                    'UNION ALL'
+                ];
+                formatted = keywords.reduce((sql, keyword) => {
+                    const pattern = new RegExp(`\\b${keyword.replace(' ', '\\\\s+')}\\b`, 'gi');
+                    return sql.replace(pattern, `\n${keyword}`);
+                }, normalized).trim();
+            }
+            setSql(formatted);
+        });
+    })();
+</script>
+<script>
+    (() => {
+        const toggleBtn = document.getElementById('toggleAutocompleteBtn');
+        if (!toggleBtn) return;
+
+        const updateState = (enabled) => {
+            toggleBtn.classList.toggle('is-active', enabled);
+            toggleBtn.title = enabled ? 'Autocomplete on' : 'Autocomplete off';
+        };
+
+        toggleBtn.addEventListener('click', () => {
+            if (!window.queryBuilderEditor || !window.queryBuilderAutocomplete?.compartment) {
+                return;
+            }
+            const enabled = !window.queryBuilderAutocomplete.enabled;
+            window.queryBuilderAutocomplete.enabled = enabled;
+            const extension = enabled ? window.queryBuilderAutocomplete.extension : [];
+            window.queryBuilderEditor.dispatch({
+                effects: window.queryBuilderAutocomplete.compartment.reconfigure(extension)
+            });
+            updateState(enabled);
+        });
+
+        const initialize = () => {
+            if (!window.queryBuilderAutocomplete?.compartment) {
+                return false;
+            }
+            updateState(window.queryBuilderAutocomplete.enabled !== false);
+            return true;
+        };
+
+        if (!initialize()) {
+            const timer = setInterval(() => {
+                if (initialize()) {
+                    clearInterval(timer);
+                }
+            }, 300);
+        }
+    })();
+</script>
+
 @if (Model.Result != null && Model.Result.Success)
 {
     @using System.Text.Json
@@ -780,7 +969,7 @@
 }
 
 <script type="module">
-    import { EditorState } from "https://esm.sh/@@codemirror/state";
+    import { EditorState, Compartment } from "https://esm.sh/@@codemirror/state";
     import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from "https://esm.sh/@@codemirror/view";
     import { defaultKeymap, history, historyKeymap } from "https://esm.sh/@@codemirror/commands";
     import { autocompletion } from "https://esm.sh/@@codemirror/autocomplete";
@@ -820,19 +1009,22 @@
             return { from, options, validFor: /[\w.\]]*/ };
         };
 
-        const state = EditorState.create({
-            doc: textarea.value,
-            extensions: [
-                lineNumbers(),
-                highlightActiveLineGutter(),
-                history(),
-                drawSelection(),
-                keymap.of([...defaultKeymap, ...historyKeymap]),
-                sql({ dialect: MSSQL }),
-                autocompletion({ override: [schemaCompletion] }),
-                oneDark
-            ]
-        });
+    const autocompleteCompartment = new Compartment();
+    const autocompleteExtension = autocompletion({ override: [schemaCompletion] });
+
+    const state = EditorState.create({
+        doc: textarea.value,
+        extensions: [
+            lineNumbers(),
+            highlightActiveLineGutter(),
+            history(),
+            drawSelection(),
+            keymap.of([...defaultKeymap, ...historyKeymap]),
+            sql({ dialect: MSSQL }),
+            autocompleteCompartment.of(autocompleteExtension),
+            oneDark
+        ]
+    });
 
         const view = new EditorView({
             state,
@@ -841,11 +1033,16 @@
 
         textarea.style.display = "none";
         document.body.classList.add("editor-enhanced");
-        window.queryBuilderEditor = view;
+    window.queryBuilderEditor = view;
+    window.queryBuilderAutocomplete = {
+        compartment: autocompleteCompartment,
+        extension: autocompleteExtension,
+        enabled: true
+    };
 
         const form = textarea.closest("form");
-        form?.addEventListener("submit", () => {
-            textarea.value = view.state.doc.toString();
-        });
-    }
+    form?.addEventListener("submit", () => {
+        textarea.value = view.state.doc.toString();
+    });
+}
 </script>
