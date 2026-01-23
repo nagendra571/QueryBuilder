@@ -96,8 +96,7 @@ public class QueriesController : Controller
             }
 
             model.Result = await RunQueryAsync(model.DataSourceId!.Value, model.SqlText, null, model.ParameterValues);
-            model.ParameterDefinitions = Array.Empty<QueryParameterDefinitionViewModel>();
-            model.ParsedTokens = QueryParameterParser.ExtractTokens(model.SqlText);
+            ApplyTokenParameters(model, new List<QueryParameterDefinitionViewModel>());
             return View(model);
         }
 
@@ -229,6 +228,20 @@ public class QueriesController : Controller
         query.SqlText = model.SqlText;
         query.UpdatedById = userId;
         query.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var activeParameters = QueryParameterParser.ExtractTokens(model.SqlText)
+            .Select(token => token.Split('.', 2, StringSplitOptions.RemoveEmptyEntries)[0].Trim().ToLowerInvariant())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var staleDefinitions = await _dbContext.QueryParameterDefinitions
+            .Where(d => d.QueryId == query.Id)
+            .ToListAsync();
+        foreach (var definition in staleDefinitions)
+        {
+            if (!activeParameters.Contains(definition.Name.Trim().ToLowerInvariant()))
+            {
+                _dbContext.QueryParameterDefinitions.Remove(definition);
+            }
+        }
 
         await _dbContext.SaveChangesAsync();
 
@@ -664,6 +677,11 @@ public class QueriesController : Controller
             });
         }
 
+        ApplyTokenParameters(model, definitionModels);
+    }
+
+    private static void ApplyTokenParameters(QueryEditViewModel model, List<QueryParameterDefinitionViewModel> definitionModels)
+    {
         model.ParameterDefinitions = definitionModels;
         model.ParsedTokens = QueryParameterParser.ExtractTokens(model.SqlText);
 
@@ -706,9 +724,15 @@ public class QueriesController : Controller
 
         foreach (var definition in definitionModels)
         {
+            var key = definition.Name.Trim().ToLowerInvariant();
             if (!model.ParameterValues.ContainsKey(definition.Name))
             {
                 model.ParameterValues[definition.Name] = definition.DefaultValue;
+            }
+            if (!string.Equals(definition.Name, key, StringComparison.OrdinalIgnoreCase) &&
+                !model.ParameterValues.ContainsKey(key))
+            {
+                model.ParameterValues[key] = model.ParameterValues[definition.Name];
             }
 
             if (definition.Type == QueryParameterType.DateRange || definition.Type == QueryParameterType.DateTimeRange)
@@ -722,6 +746,16 @@ public class QueriesController : Controller
                 if (!model.ParameterValues.ContainsKey(endKey))
                 {
                     model.ParameterValues[endKey] = null;
+                }
+                var normalizedStart = $"{key}.start";
+                var normalizedEnd = $"{key}.end";
+                if (!model.ParameterValues.ContainsKey(normalizedStart))
+                {
+                    model.ParameterValues[normalizedStart] = model.ParameterValues[startKey];
+                }
+                if (!model.ParameterValues.ContainsKey(normalizedEnd))
+                {
+                    model.ParameterValues[normalizedEnd] = model.ParameterValues[endKey];
                 }
             }
         }

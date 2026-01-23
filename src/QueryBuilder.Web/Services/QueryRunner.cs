@@ -47,7 +47,12 @@ public class QueryRunner
             await using var reader = await command.ExecuteReaderAsync();
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                columns.Add(reader.GetName(i));
+                var name = reader.GetName(i);
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    name = i == 0 ? "?column?" : $"?column?{i}";
+                }
+                columns.Add(name);
             }
 
             var rowCount = 0;

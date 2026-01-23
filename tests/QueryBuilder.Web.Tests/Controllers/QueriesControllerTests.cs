@@ -13,6 +13,78 @@ namespace QueryBuilder.Web.Tests.Controllers;
 public class QueriesControllerTests
 {
     [Fact]
+    public async Task Edit_Post_Save_Removes_Stale_Query_Parameters()
+    {
+        using var dbContext = TestDbContextFactory.CreateDbContext();
+        dbContext.DataSources.Add(new DataSource
+        {
+            Id = 1,
+            Name = "Primary",
+            ConnectionStringEncrypted = "enc",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.Queries.Add(new Query
+        {
+            Id = 1,
+            Name = "Query",
+            DataSourceId = 1,
+            SqlText = "select {{foo}}",
+            CreatedById = "editor-1",
+            UpdatedById = "editor-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.QueryParameterDefinitions.AddRange(
+            new QueryParameterDefinition
+            {
+                QueryId = 1,
+                Name = "foo",
+                Type = QueryParameterType.Text,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            },
+            new QueryParameterDefinition
+            {
+                QueryId = 1,
+                Name = "bar",
+                Type = QueryParameterType.Text,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+        await dbContext.SaveChangesAsync();
+
+        var dataProtectionProvider = DataProtectionProvider.Create("QueryBuilder.Tests");
+        var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
+        var schemaBrowser = new SchemaBrowserService(dbContext, dataProtectionProvider);
+        var userManager = UserManagerMockHelper.Create("editor-1");
+        var permissionService = new PermissionService(dbContext, userManager.Object);
+        var parameterService = new FakeQueryParameterService();
+
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService)
+        {
+            ControllerContext = ControllerTestHelpers.CreateControllerContext(
+                ControllerTestHelpers.CreateUser("editor-1", "Editor"))
+        };
+        controller.TempData = ControllerTestHelpers.CreateTempData(controller);
+
+        var model = new QueryEditViewModel
+        {
+            Id = 1,
+            Name = "Query",
+            DataSourceId = 1,
+            SqlText = "select {{foo}}",
+            SubmitAction = "save"
+        };
+
+        var result = await controller.Edit(1, model);
+
+        result.Should().BeOfType<RedirectToActionResult>();
+        dbContext.QueryParameterDefinitions.Should().HaveCount(1);
+        dbContext.QueryParameterDefinitions.Single().Name.Should().Be("foo");
+    }
+
+    [Fact]
     public async Task Create_Post_Run_Returns_View_With_ModelError_For_Invalid_Sql()
     {
         using var dbContext = TestDbContextFactory.CreateDbContext();

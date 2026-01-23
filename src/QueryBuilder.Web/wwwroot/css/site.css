@@ -751,6 +751,40 @@ body {
   box-shadow: none;
 }
 
+.sql-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+
+.sql-editor-actions-left,
+.sql-editor-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sql-editor-actions .btn-light {
+  background: #e2e8f0;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.sql-editor-actions .btn-light.is-active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #f8fafc;
+}
+
 .editor-enhanced .sql-gutter {
   display: none;
 }
