@@ -6,6 +6,7 @@
 
 <div class="query-page">
     <form method="post">
+        @Html.AntiForgeryToken()
         <partial name="_QueryForm" />
     </form>
 </div>
