@@ -5,8 +5,12 @@
 }
 
 <div class="query-page">
-    <form method="post">
+    <form method="post" asp-action="@(Model.Id.HasValue ? "Edit" : "Create")" asp-route-id="@Model.Id">
         @Html.AntiForgeryToken()
+        @if (Model.Id.HasValue)
+        {
+            <input type="hidden" asp-for="Id" />
+        }
         <partial name="_QueryForm" />
     </form>
 </div>

@@ -5,13 +5,23 @@ namespace QueryBuilder.Web.Tests.TestHelpers;
 
 public class FakeQueryParameterService : IQueryParameterService
 {
-    public Task<QueryParameterApplyResult> ApplyAsync(QueryParameterApplyRequest request)
+    private readonly QueryParameterApplyResult _result;
+
+    public FakeQueryParameterService(QueryParameterApplyResult? result = null)
     {
-        return Task.FromResult(new QueryParameterApplyResult
+        _result = result ?? new QueryParameterApplyResult
         {
             Success = true,
-            Sql = request.Sql,
             AppliedValues = new Dictionary<string, string?>()
-        });
+        };
+    }
+
+    public Task<QueryParameterApplyResult> ApplyAsync(QueryParameterApplyRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(_result.Sql))
+        {
+            _result.Sql = request.Sql;
+        }
+        return Task.FromResult(_result);
     }
 }

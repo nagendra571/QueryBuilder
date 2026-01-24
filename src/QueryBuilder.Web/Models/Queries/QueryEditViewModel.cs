@@ -29,4 +29,11 @@ public class QueryEditViewModel
     public IReadOnlyList<QueryParameterDefinitionViewModel> ParameterDefinitions { get; set; } = Array.Empty<QueryParameterDefinitionViewModel>();
     public IReadOnlyList<string> ParsedTokens { get; set; } = Array.Empty<string>();
     public Dictionary<string, string?> ParameterValues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public bool CanDeleteVisualizations { get; set; }
+
+    public bool ShowEditVisualization =>
+        Id.HasValue &&
+        Result?.Success == true &&
+        Result.Columns.Count > 0 &&
+        Visualizations.Count == 0;
 }

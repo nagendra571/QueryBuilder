@@ -50,7 +50,27 @@ public class QueryParameterServiceTests
         var result = await service.ApplyAsync(request);
 
         result.Success.Should().BeFalse();
-        result.Errors.Should().Contain("Missing parameter value: abc");
+        result.Errors.Should().ContainSingle(error =>
+            error.Parameter == "abc" && error.Message == "is missing a value.");
+    }
+
+    [Fact]
+    public async Task ApplyAsync_Returns_All_Missing_Parameter_Errors()
+    {
+        var service = CreateService();
+        var request = new QueryParameterApplyRequest
+        {
+            Sql = "select {{abc}}, {{foo}}, {{newp}}",
+            AllowText = true
+        };
+
+        var result = await service.ApplyAsync(request);
+
+        result.Success.Should().BeFalse();
+        result.Errors.Should().HaveCount(3);
+        result.Errors.Should().ContainSingle(error => error.Parameter == "abc" && error.Message == "is missing a value.");
+        result.Errors.Should().ContainSingle(error => error.Parameter == "foo" && error.Message == "is missing a value.");
+        result.Errors.Should().ContainSingle(error => error.Parameter == "newp" && error.Message == "is missing a value.");
     }
 
     [Fact]

@@ -117,10 +117,11 @@ public class PublicController : Controller
 
         if (!applyResult.Success)
         {
-            return Ok(new
+            return BadRequest(new ParameterValidationErrorResponse
             {
-                success = false,
-                errorMessage = "Refresh failed."
+                Message = "One or more parameter values are missing or invalid.",
+                Errors = applyResult.Errors,
+                ErrorMessage = "Refresh failed."
             });
         }
 
@@ -206,10 +207,12 @@ public class PublicController : Controller
             QueryResultViewModel result;
             if (!applyResult.Success)
             {
+                var generalError = applyResult.Errors.FirstOrDefault(e => string.IsNullOrWhiteSpace(e.Parameter));
                 result = new QueryResultViewModel
                 {
                     Success = false,
-                    ErrorMessage = string.Join(" ", applyResult.Errors)
+                    ErrorMessage = generalError?.Message,
+                    ParameterErrors = applyResult.Errors
                 };
             }
             else

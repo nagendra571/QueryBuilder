@@ -81,6 +81,16 @@ public class PermissionService
         return await GetSharedEntityIdsAsync(userId, ShareEntityType.Query);
     }
 
+    public async Task<bool> HasQueryEditAccessAsync(string userId, int queryId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return false;
+        }
+
+        return await HasShareAsync(userId, ShareEntityType.Query, queryId, ShareAccessLevel.Edit);
+    }
+
     private async Task<bool> HasShareAsync(string userId, ShareEntityType entityType, int entityId)
     {
         var groupIds = await _dbContext.GroupMembers
@@ -92,6 +102,22 @@ public class PermissionService
         return await _dbContext.Shares.AsNoTracking().AnyAsync(s =>
             s.EntityType == entityType &&
             s.EntityId == entityId &&
+            ((s.UserId != null && s.UserId == userId) ||
+             (s.GroupId != null && groupIds.Contains(s.GroupId.Value))));
+    }
+
+    private async Task<bool> HasShareAsync(string userId, ShareEntityType entityType, int entityId, ShareAccessLevel minimumAccessLevel)
+    {
+        var groupIds = await _dbContext.GroupMembers
+            .AsNoTracking()
+            .Where(m => m.UserId == userId)
+            .Select(m => m.GroupId)
+            .ToListAsync();
+
+        return await _dbContext.Shares.AsNoTracking().AnyAsync(s =>
+            s.EntityType == entityType &&
+            s.EntityId == entityId &&
+            s.AccessLevel >= minimumAccessLevel &&
             ((s.UserId != null && s.UserId == userId) ||
              (s.GroupId != null && groupIds.Contains(s.GroupId.Value))));
     }

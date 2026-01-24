@@ -1,4 +1,5 @@
 using QueryBuilder.Domain.Entities;
+using QueryBuilder.Web.Models.Queries;
 
 namespace QueryBuilder.Web.Services;
 
@@ -20,5 +21,5 @@ public sealed class QueryParameterApplyResult
     public bool Success { get; set; }
     public string Sql { get; set; } = string.Empty;
     public Dictionary<string, string?> AppliedValues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-    public List<string> Errors { get; set; } = new();
+    public List<QueryParameterValidationError> Errors { get; set; } = new();
 }

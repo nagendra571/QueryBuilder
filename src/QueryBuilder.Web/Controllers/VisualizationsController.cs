@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -18,17 +19,23 @@ public class VisualizationsController : Controller
     private readonly QueryRunner _queryRunner;
     private readonly ILogger<VisualizationsController> _logger;
     private readonly IQueryParameterService _parameterService;
+    private readonly IVisualizationService _visualizationService;
+    private readonly PermissionService _permissionService;
+    private readonly UserManager<IdentityUser> _userManager;
     private static readonly HashSet<int> AllowedRefreshIntervals = new()
     {
         30, 60, 300, 600, 1800, 3600
     };
 
-    public VisualizationsController(ApplicationDbContext dbContext, QueryRunner queryRunner, ILogger<VisualizationsController> logger, IQueryParameterService parameterService)
+    public VisualizationsController(ApplicationDbContext dbContext, QueryRunner queryRunner, ILogger<VisualizationsController> logger, IQueryParameterService parameterService, IVisualizationService visualizationService, PermissionService permissionService, UserManager<IdentityUser> userManager)
     {
         _dbContext = dbContext;
         _queryRunner = queryRunner;
         _logger = logger;
         _parameterService = parameterService;
+        _visualizationService = visualizationService;
+        _permissionService = permissionService;
+        _userManager = userManager;
     }
 
     public async Task<IActionResult> Create(int queryId)
@@ -61,10 +68,12 @@ public class VisualizationsController : Controller
         QueryResultViewModel result;
         if (!applyResult.Success)
         {
+            var generalError = applyResult.Errors.FirstOrDefault(e => string.IsNullOrWhiteSpace(e.Parameter));
             result = new QueryResultViewModel
             {
                 Success = false,
-                ErrorMessage = string.Join(" ", applyResult.Errors)
+                ErrorMessage = generalError?.Message,
+                ParameterErrors = applyResult.Errors
             };
         }
         else
@@ -124,10 +133,12 @@ public class VisualizationsController : Controller
         QueryResultViewModel result;
         if (!applyResult.Success)
         {
+            var generalError = applyResult.Errors.FirstOrDefault(e => string.IsNullOrWhiteSpace(e.Parameter));
             result = new QueryResultViewModel
             {
                 Success = false,
-                ErrorMessage = string.Join(" ", applyResult.Errors)
+                ErrorMessage = generalError?.Message,
+                ParameterErrors = applyResult.Errors
             };
         }
         else
@@ -229,10 +240,12 @@ public class VisualizationsController : Controller
         QueryResultViewModel result;
         if (!applyResult.Success)
         {
+            var generalError = applyResult.Errors.FirstOrDefault(e => string.IsNullOrWhiteSpace(e.Parameter));
             result = new QueryResultViewModel
             {
                 Success = false,
-                ErrorMessage = string.Join(" ", applyResult.Errors)
+                ErrorMessage = generalError?.Message,
+                ParameterErrors = applyResult.Errors
             };
         }
         else
@@ -263,7 +276,8 @@ public class VisualizationsController : Controller
             IsAutoRefreshEnabled = visualization.IsAutoRefreshEnabled,
             AutoRefreshIntervalSeconds = visualization.AutoRefreshIntervalSeconds,
             ParameterDefinitions = definitions,
-            ParameterValues = parameterValues
+            ParameterValues = parameterValues,
+            CanDelete = await CanDeleteVisualizationAsync(visualization.Query)
         };
 
         ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
@@ -310,10 +324,12 @@ public class VisualizationsController : Controller
         QueryResultViewModel result;
         if (!applyResult.Success)
         {
+            var generalError = applyResult.Errors.FirstOrDefault(e => string.IsNullOrWhiteSpace(e.Parameter));
             result = new QueryResultViewModel
             {
                 Success = false,
-                ErrorMessage = string.Join(" ", applyResult.Errors)
+                ErrorMessage = generalError?.Message,
+                ParameterErrors = applyResult.Errors
             };
         }
         else
@@ -326,6 +342,7 @@ public class VisualizationsController : Controller
         {
             model.YColumns.Add(model.YColumn);
         }
+        model.CanDelete = await CanDeleteVisualizationAsync(query);
 
         ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
         ViewData["Title"] = "Edit Visualization";
@@ -404,10 +421,12 @@ public class VisualizationsController : Controller
         QueryResultViewModel result;
         if (!applyResult.Success)
         {
+            var generalError = applyResult.Errors.FirstOrDefault(e => string.IsNullOrWhiteSpace(e.Parameter));
             result = new QueryResultViewModel
             {
                 Success = false,
-                ErrorMessage = string.Join(" ", applyResult.Errors)
+                ErrorMessage = generalError?.Message,
+                ParameterErrors = applyResult.Errors
             };
         }
         else
@@ -507,10 +526,11 @@ public class VisualizationsController : Controller
 
         if (!applyResult.Success)
         {
-            return Ok(new
+            return BadRequest(new ParameterValidationErrorResponse
             {
-                success = false,
-                errorMessage = string.Join(" ", applyResult.Errors)
+                Message = "One or more parameter values are missing or invalid.",
+                Errors = applyResult.Errors,
+                ErrorMessage = "Parameter validation failed."
             });
         }
 
@@ -530,6 +550,45 @@ public class VisualizationsController : Controller
             columns = result.Columns,
             rows = result.Rows
         });
+    }
+
+    private async Task<bool> CanDeleteVisualizationAsync(Query query)
+    {
+        if (User.IsInRole("Admin"))
+        {
+            return true;
+        }
+
+        if (!User.IsInRole("Editor"))
+        {
+            return false;
+        }
+
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return false;
+        }
+
+        if (query.CreatedById == userId)
+        {
+            return true;
+        }
+
+        return await _permissionService.HasQueryEditAccessAsync(userId, query.Id);
+    }
+
+    [HttpPost("visualizations/{id}/delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var result = await _visualizationService.DeleteVisualizationAsync(id, User);
+        if (result.IsForbidden)
+        {
+            return Forbid();
+        }
+
+        return Ok(result);
     }
 
     private async Task<IReadOnlyList<QueryParameterDefinitionViewModel>> BuildParameterDefinitionsAsync(int queryId, string sqlText)
