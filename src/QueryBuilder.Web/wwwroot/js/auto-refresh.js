@@ -59,6 +59,22 @@
       footer.className = "auto-refresh-warning text-warning small mt-2";
       container.appendChild(footer);
     }
+    footer.innerHTML = "";
+    if (Array.isArray(message)) {
+      if (message.length === 1) {
+        footer.textContent = message[0];
+        return;
+      }
+      const list = document.createElement("ul");
+      list.className = "mb-0 ps-3";
+      message.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        list.appendChild(li);
+      });
+      footer.appendChild(list);
+      return;
+    }
     footer.textContent = message;
   };
 
@@ -67,6 +83,31 @@
     if (footer) {
       footer.remove();
     }
+  };
+
+  const buildErrorMessages = (payload, fallback) => {
+    if (payload && payload.type === "ParameterValidationError" && Array.isArray(payload.errors)) {
+      const messages = payload.errors
+        .map((error) => {
+          if (!error) return null;
+          const message = error.message || "is invalid.";
+          if (error.parameter) {
+            return `Parameter ${error.parameter} ${message}`;
+          }
+          return message;
+        })
+        .filter(Boolean);
+      if (messages.length > 0) {
+        return messages;
+      }
+    }
+    if (payload && payload.message) {
+      return [payload.message];
+    }
+    if (payload && payload.errorMessage) {
+      return [payload.errorMessage];
+    }
+    return [fallback];
   };
 
   const refreshWidget = async (widget) => {
@@ -96,13 +137,18 @@
       const queryString = typeof resolver === "function" ? resolver(widget.widgetId) : "";
       const url = queryString ? `${widget.endpoint}?${queryString}` : widget.endpoint;
       const response = await fetch(url, { credentials: "same-origin" });
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (err) {
+        payload = null;
+      }
       if (!response.ok) {
-        showError(container, "Auto refresh failed.");
+        showError(container, buildErrorMessages(payload, "Auto refresh failed."));
         return;
       }
-      const payload = await response.json();
-      if (!payload.success) {
-        showError(container, payload.errorMessage || "Auto refresh failed.");
+      if (!payload || !payload.success) {
+        showError(container, buildErrorMessages(payload, "Auto refresh failed."));
         return;
       }
 

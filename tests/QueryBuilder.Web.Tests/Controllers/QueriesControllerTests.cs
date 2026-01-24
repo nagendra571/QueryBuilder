@@ -126,6 +126,50 @@ public class QueriesControllerTests
     }
 
     [Fact]
+    public async Task Create_Post_Run_Creates_Draft_Query_When_Missing_Id()
+    {
+        using var dbContext = TestDbContextFactory.CreateDbContext();
+        var dataProtectionProvider = DataProtectionProvider.Create("QueryBuilder.Tests");
+        var protector = dataProtectionProvider.CreateProtector("QueryBuilder.DataSources.ConnectionString");
+
+        dbContext.DataSources.Add(new DataSource
+        {
+            Id = 1,
+            Name = "Primary",
+            ConnectionStringEncrypted = protector.Protect("Server=localhost\\INVALID;Database=master;Trusted_Connection=True;Connection Timeout=1;"),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
+        var schemaBrowser = new SchemaBrowserService(dbContext, dataProtectionProvider);
+        var userManager = UserManagerMockHelper.Create("editor-1");
+        var permissionService = new PermissionService(dbContext, userManager.Object);
+        var parameterService = new FakeQueryParameterService();
+
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService)
+        {
+            ControllerContext = ControllerTestHelpers.CreateControllerContext(
+                ControllerTestHelpers.CreateUser("editor-1", "Editor"))
+        };
+
+        var model = new QueryEditViewModel
+        {
+            DataSourceId = 1,
+            SqlText = "select 1",
+            SubmitAction = "run"
+        };
+
+        var result = await controller.Create(model);
+
+        result.Should().BeOfType<ViewResult>();
+        dbContext.Queries.Should().HaveCount(1);
+        dbContext.Queries.Single().Name.Should().Be("Untitled query");
+        dbContext.QueryExecutions.Should().HaveCount(1);
+    }
+
+    [Fact]
     public async Task Create_Post_Saves_Query_When_Valid()
     {
         using var dbContext = TestDbContextFactory.CreateDbContext();
@@ -315,5 +359,87 @@ public class QueriesControllerTests
         var result = await controller.Details(query.Id);
 
         result.Should().BeOfType<ViewResult>();
+    }
+
+    [Fact]
+    public void ShowEditVisualization_True_When_Result_Success_And_No_Visualizations()
+    {
+        var model = new QueryEditViewModel
+        {
+            Id = 1,
+            Result = new QueryResultViewModel
+            {
+                Success = true,
+                Columns = new List<string> { "id" }
+            },
+            Visualizations = Array.Empty<QueryVisualizationListItemViewModel>()
+        };
+
+        model.ShowEditVisualization.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Edit_Get_Excludes_Deleted_Visualizations()
+    {
+        using var dbContext = TestDbContextFactory.CreateDbContext();
+        dbContext.DataSources.Add(new DataSource
+        {
+            Id = 1,
+            Name = "Primary",
+            ConnectionStringEncrypted = "enc",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.Queries.Add(new Query
+        {
+            Id = 1,
+            Name = "Query",
+            DataSourceId = 1,
+            SqlText = "select 1",
+            CreatedById = "editor-1",
+            UpdatedById = "editor-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.Visualizations.AddRange(
+            new Visualization
+            {
+                Id = 10,
+                QueryId = 1,
+                Name = "Active Viz",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            },
+            new Visualization
+            {
+                Id = 11,
+                QueryId = 1,
+                Name = "Deleted Viz",
+                IsDeleted = true,
+                DeletedAt = DateTimeOffset.UtcNow,
+                DeletedByUserId = "editor-1",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+        await dbContext.SaveChangesAsync();
+
+        var dataProtectionProvider = DataProtectionProvider.Create("QueryBuilder.Tests");
+        var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
+        var schemaBrowser = new SchemaBrowserService(dbContext, dataProtectionProvider);
+        var userManager = UserManagerMockHelper.Create("editor-1");
+        var permissionService = new PermissionService(dbContext, userManager.Object);
+        var parameterService = new FakeQueryParameterService();
+
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService)
+        {
+            ControllerContext = ControllerTestHelpers.CreateControllerContext(
+                ControllerTestHelpers.CreateUser("editor-1", "Editor"))
+        };
+
+        var result = await controller.Edit(1);
+
+        var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+        var model = viewResult.Model.Should().BeAssignableTo<QueryEditViewModel>().Subject;
+        model.Visualizations.Should().ContainSingle(v => v.Id == 10);
     }
 }

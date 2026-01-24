@@ -21,6 +21,9 @@ public class Visualization
     public int? AutoRefreshIntervalSeconds { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
+    public string? DeletedByUserId { get; set; }
 
     public Query? Query { get; set; }
 }

@@ -23,7 +23,30 @@
 
 @if (!Model.Result.Success)
 {
-    <div class="alert alert-danger">@Model.Result.ErrorMessage</div>
+    if (Model.Result.ParameterErrors.Count > 0)
+    {
+        <div class="alert alert-danger">
+            <ul class="mb-0 ps-3">
+                @foreach (var error in Model.Result.ParameterErrors)
+                {
+                    <li>
+                        @if (!string.IsNullOrWhiteSpace(error.Parameter))
+                        {
+                            <span>Parameter <strong>@error.Parameter</strong> @error.Message</span>
+                        }
+                        else
+                        {
+                            <span>@error.Message</span>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">@Model.Result.ErrorMessage</div>
+    }
 }
 else
 {

@@ -4,6 +4,7 @@ public class QueryResultViewModel
 {
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
+    public IReadOnlyList<QueryParameterValidationError> ParameterErrors { get; set; } = Array.Empty<QueryParameterValidationError>();
     public int? RowCount { get; set; }
     public int DurationMs { get; set; }
     public IReadOnlyList<string> Columns { get; set; } = Array.Empty<string>();

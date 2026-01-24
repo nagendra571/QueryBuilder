@@ -95,8 +95,39 @@ public class QueriesController : Controller
                 return View(model);
             }
 
-            model.Result = await RunQueryAsync(model.DataSourceId!.Value, model.SqlText, null, model.ParameterValues);
+            Query? draftQuery = null;
+            if (!model.Id.HasValue)
+            {
+                var draftUserId = _userManager.GetUserId(User) ?? string.Empty;
+                var draftNow = DateTimeOffset.UtcNow;
+                var draftName = string.IsNullOrWhiteSpace(model.Name) ? "Untitled query" : model.Name.Trim();
+                draftQuery = new Query
+                {
+                    Name = draftName,
+                    Description = model.Description?.Trim(),
+                    DataSourceId = model.DataSourceId!.Value,
+                    SqlText = model.SqlText,
+                    CreatedById = draftUserId,
+                    UpdatedById = draftUserId,
+                    CreatedAt = draftNow,
+                    UpdatedAt = draftNow
+                };
+                _dbContext.Queries.Add(draftQuery);
+                await _dbContext.SaveChangesAsync();
+                model.Id = draftQuery.Id;
+                model.Name = draftName;
+            }
+
+            model.Result = await RunQueryAsync(model.DataSourceId!.Value, model.SqlText, model.Id, model.ParameterValues);
             ApplyTokenParameters(model, new List<QueryParameterDefinitionViewModel>());
+            if (model.Id.HasValue)
+            {
+                var queryForPermissions = draftQuery ?? await _dbContext.Queries.AsNoTracking().FirstOrDefaultAsync(q => q.Id == model.Id.Value);
+                if (queryForPermissions != null)
+                {
+                    model.CanDeleteVisualizations = await CanDeleteVisualizationsAsync(queryForPermissions);
+                }
+            }
             return View(model);
         }
 
@@ -156,7 +187,8 @@ public class QueriesController : Controller
             DataSourceId = query.DataSourceId,
             SqlText = query.SqlText,
             Visualizations = visualizations,
-            ShareSection = await BuildShareSectionAsync(ShareEntityType.Query, query.Id)
+            ShareSection = await BuildShareSectionAsync(ShareEntityType.Query, query.Id),
+            CanDeleteVisualizations = await CanDeleteVisualizationsAsync(query)
         };
 
         await PopulateParameterModelAsync(model, query.Id);
@@ -201,6 +233,7 @@ public class QueriesController : Controller
                 })
                 .ToListAsync();
             model.ShareSection = await BuildShareSectionAsync(ShareEntityType.Query, query.Id);
+            model.CanDeleteVisualizations = await CanDeleteVisualizationsAsync(query);
             return View(model);
         }
 
@@ -218,6 +251,7 @@ public class QueriesController : Controller
                 })
                 .ToListAsync();
             model.ShareSection = await BuildShareSectionAsync(ShareEntityType.Query, query.Id);
+            model.CanDeleteVisualizations = await CanDeleteVisualizationsAsync(query);
             return View(model);
         }
 
@@ -828,6 +862,32 @@ public class QueriesController : Controller
         return options;
     }
 
+    private async Task<bool> CanDeleteVisualizationsAsync(Query query)
+    {
+        if (User.IsInRole("Admin"))
+        {
+            return true;
+        }
+
+        if (!User.IsInRole("Editor"))
+        {
+            return false;
+        }
+
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return false;
+        }
+
+        if (query.CreatedById == userId)
+        {
+            return true;
+        }
+
+        return await _permissionService.HasQueryEditAccessAsync(userId, query.Id);
+    }
+
     private async Task<QueryResultViewModel> RunQueryAsync(int dataSourceId, string sqlText, int? queryId, Dictionary<string, string?>? parameterValues)
     {
         var definitions = queryId.HasValue
@@ -848,10 +908,12 @@ public class QueriesController : Controller
 
         if (!applyResult.Success)
         {
+            var generalError = applyResult.Errors.FirstOrDefault(e => string.IsNullOrWhiteSpace(e.Parameter));
             return new QueryResultViewModel
             {
                 Success = false,
-                ErrorMessage = string.Join(" ", applyResult.Errors)
+                ErrorMessage = generalError?.Message,
+                ParameterErrors = applyResult.Errors
             };
         }
 

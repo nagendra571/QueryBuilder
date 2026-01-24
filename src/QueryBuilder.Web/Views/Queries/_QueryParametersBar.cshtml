@@ -6,6 +6,23 @@
     var definitions = Model.ParameterDefinitions ?? Array.Empty<QueryBuilder.Web.Models.Queries.QueryParameterDefinitionViewModel>();
     var definitionMap = definitions.ToDictionary(d => d.Name, d => d, StringComparer.OrdinalIgnoreCase);
     var missing = tokenSet.Where(t => !definitionMap.ContainsKey(t.Split('.', 2)[0])).ToList();
+    var parameterErrors = Model.Result?.ParameterErrors ?? Array.Empty<QueryBuilder.Web.Models.Queries.QueryParameterValidationError>();
+    var parameterErrorMap = parameterErrors
+        .Where(e => !string.IsNullOrWhiteSpace(e.Parameter))
+        .GroupBy(e => e.Parameter!, StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+    string NormalizeKey(string key) => key.Trim().ToLowerInvariant();
+    bool HasError(string key) => parameterErrorMap.ContainsKey(NormalizeKey(key));
+    string? InlineMessage(string key)
+    {
+        if (!parameterErrorMap.TryGetValue(NormalizeKey(key), out var errors))
+        {
+            return null;
+        }
+        var message = errors.FirstOrDefault()?.Message ?? string.Empty;
+        return message.Contains("missing", StringComparison.OrdinalIgnoreCase) ? "Required" : "Invalid value";
+    }
 }
 
 <div class="query-params-strip mb-3" data-params-strip="true">
@@ -33,22 +50,30 @@
                     @switch (definition.Type)
                     {
                         case QueryParameterType.Text:
-                            <input class="form-control form-control-sm"
+                            <input class="form-control form-control-sm @(HasError(definition.Name) ? "is-invalid" : "")"
                                    data-param-input="true"
                                    name="ParameterValues[@definition.Name]"
                                    value="@(Model.ParameterValues.TryGetValue(definition.Name, out var textValue) ? textValue : definition.DefaultValue)"
                                    placeholder="Enter text" />
+                            @if (HasError(definition.Name))
+                            {
+                                <div class="invalid-feedback d-block" data-param-inline-error="true">@InlineMessage(definition.Name)</div>
+                            }
                             <div class="form-text text-warning">Text parameters are unsafe for public links.</div>
                             break;
                         case QueryParameterType.Number:
-                            <input class="form-control form-control-sm"
+                            <input class="form-control form-control-sm @(HasError(definition.Name) ? "is-invalid" : "")"
                                    type="number"
                                    data-param-input="true"
                                    name="ParameterValues[@definition.Name]"
                                    value="@(Model.ParameterValues.TryGetValue(definition.Name, out var numberValue) ? numberValue : definition.DefaultValue)" />
+                            @if (HasError(definition.Name))
+                            {
+                                <div class="invalid-feedback d-block" data-param-inline-error="true">@InlineMessage(definition.Name)</div>
+                            }
                             break;
                         case QueryParameterType.Dropdown:
-                            <select class="form-select form-select-sm" data-param-input="true" name="ParameterValues[@definition.Name]">
+                            <select class="form-select form-select-sm @(HasError(definition.Name) ? "is-invalid" : "")" data-param-input="true" name="ParameterValues[@definition.Name]">
                                 <option value="">Select...</option>
                                 @foreach (var option in definition.Options)
                                 {
@@ -56,10 +81,14 @@
                                     <option value="@option.Value" selected="@(selected == option.Value ? "selected" : null)">@option.Label</option>
                                 }
                             </select>
+                            @if (HasError(definition.Name))
+                            {
+                                <div class="invalid-feedback d-block" data-param-inline-error="true">@InlineMessage(definition.Name)</div>
+                            }
                             break;
                         case QueryParameterType.Date:
                             <div class="input-group input-group-sm query-param-date" data-param-date-group="true">
-                                <input class="form-control"
+                                <input class="form-control @(HasError(definition.Name) ? "is-invalid" : "")"
                                        type="date"
                                        data-param-input="true"
                                        data-param-date="true"
@@ -84,10 +113,14 @@
                                     <li><button class="dropdown-item" type="button" data-preset="last_year">Last year</button></li>
                                 </ul>
                             </div>
+                            @if (HasError(definition.Name))
+                            {
+                                <div class="invalid-feedback d-block" data-param-inline-error="true">@InlineMessage(definition.Name)</div>
+                            }
                             break;
                         case QueryParameterType.DateTime:
                             <div class="input-group input-group-sm query-param-date" data-param-date-group="true">
-                                <input class="form-control"
+                                <input class="form-control @(HasError(definition.Name) ? "is-invalid" : "")"
                                        type="datetime-local"
                                        data-param-input="true"
                                        data-param-date="true"
@@ -113,17 +146,21 @@
                                     <li><button class="dropdown-item" type="button" data-preset="last_year">Last year</button></li>
                                 </ul>
                             </div>
+                            @if (HasError(definition.Name))
+                            {
+                                <div class="invalid-feedback d-block" data-param-inline-error="true">@InlineMessage(definition.Name)</div>
+                            }
                             break;
                         case QueryParameterType.DateRange:
                             <div class="query-param-range-group" data-param-range-group="true" data-param-kind="date">
                                 <div class="d-flex gap-2">
-                                    <input class="form-control form-control-sm"
+                                    <input class="form-control form-control-sm @(HasError($"{definition.Name}.start") ? "is-invalid" : "")"
                                            type="date"
                                            data-param-input="true"
                                            data-param-range="start"
                                            name="ParameterValues[@(definition.Name + ".start")]"
                                            value="@(Model.ParameterValues.TryGetValue($"{definition.Name}.start", out var startDate) ? startDate : null)" />
-                                    <input class="form-control form-control-sm"
+                                    <input class="form-control form-control-sm @(HasError($"{definition.Name}.end") ? "is-invalid" : "")"
                                            type="date"
                                            data-param-input="true"
                                            data-param-range="end"
@@ -148,17 +185,25 @@
                                     </div>
                                 </div>
                             </div>
+                            @if (HasError($"{definition.Name}.start"))
+                            {
+                                <div class="invalid-feedback d-block" data-param-inline-error="true">@InlineMessage($"{definition.Name}.start")</div>
+                            }
+                            @if (HasError($"{definition.Name}.end"))
+                            {
+                                <div class="invalid-feedback d-block" data-param-inline-error="true">@InlineMessage($"{definition.Name}.end")</div>
+                            }
                             break;
                         case QueryParameterType.DateTimeRange:
                             <div class="query-param-range-group" data-param-range-group="true" data-param-kind="datetime">
                                 <div class="d-flex gap-2">
-                                    <input class="form-control form-control-sm"
+                                    <input class="form-control form-control-sm @(HasError($"{definition.Name}.start") ? "is-invalid" : "")"
                                            type="datetime-local"
                                            data-param-input="true"
                                            data-param-range="start"
                                            name="ParameterValues[@(definition.Name + ".start")]"
                                            value="@(Model.ParameterValues.TryGetValue($"{definition.Name}.start", out var startDateTime) ? startDateTime : null)" />
-                                    <input class="form-control form-control-sm"
+                                    <input class="form-control form-control-sm @(HasError($"{definition.Name}.end") ? "is-invalid" : "")"
                                            type="datetime-local"
                                            data-param-input="true"
                                            data-param-range="end"
@@ -183,6 +228,14 @@
                                     </div>
                                 </div>
                             </div>
+                            @if (HasError($"{definition.Name}.start"))
+                            {
+                                <div class="invalid-feedback d-block" data-param-inline-error="true">@InlineMessage($"{definition.Name}.start")</div>
+                            }
+                            @if (HasError($"{definition.Name}.end"))
+                            {
+                                <div class="invalid-feedback d-block" data-param-inline-error="true">@InlineMessage($"{definition.Name}.end")</div>
+                            }
                             break;
                     }
                 </div>

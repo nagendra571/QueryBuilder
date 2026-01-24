@@ -66,4 +66,5 @@ public class VisualizationEditViewModel
     public QueryResultViewModel? Result { get; set; }
     public IReadOnlyList<QueryParameterDefinitionViewModel> ParameterDefinitions { get; set; } = Array.Empty<QueryParameterDefinitionViewModel>();
     public Dictionary<string, string> ParameterValues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public bool CanDelete { get; set; }
 }

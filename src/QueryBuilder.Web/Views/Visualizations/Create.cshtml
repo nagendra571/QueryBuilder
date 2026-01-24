@@ -15,11 +15,25 @@
                 <div class="h5 mb-0">@actionLabel Visualization</div>
                 <div class="text-muted small">Query @Model.QueryId</div>
             </div>
-            <a class="btn btn-sm btn-outline-secondary" asp-controller="Queries" asp-action="Edit" asp-route-id="@Model.QueryId">Close</a>
+            <div class="d-flex gap-2">
+                @if (Model.Id.HasValue && Model.CanDelete)
+                {
+                    <button class="btn btn-sm btn-outline-danger"
+                            type="button"
+                            id="deleteVisualizationBtn"
+                            data-visualization-id="@Model.Id"
+                            data-visualization-name="@Model.Name"
+                            data-query-id="@Model.QueryId">
+                        Delete
+                    </button>
+                }
+                <a class="btn btn-sm btn-outline-secondary" asp-controller="Queries" asp-action="Edit" asp-route-id="@Model.QueryId">Close</a>
+            </div>
         </div>
 
         <div class="viz-body">
             <form method="post" class="viz-config viz-card">
+                @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="Id" />
                 <input type="hidden" asp-for="QueryId" />
 
@@ -27,9 +41,30 @@
 
                 @if (Model.Result != null && !Model.Result.Success)
                 {
-                    <div class="alert alert-warning">
-                        @Model.Result.ErrorMessage
-                    </div>
+                    if (Model.Result.ParameterErrors.Count > 0)
+                    {
+                        <div class="alert alert-warning">
+                            <ul class="mb-0 ps-3">
+                                @foreach (var error in Model.Result.ParameterErrors)
+                                {
+                                    <li>
+                                        @if (!string.IsNullOrWhiteSpace(error.Parameter))
+                                        {
+                                            <span>Parameter <strong>@error.Parameter</strong> @error.Message</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@error.Message</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">@Model.Result.ErrorMessage</div>
+                    }
                 }
 
                 <div class="mb-3">
@@ -201,7 +236,30 @@
             <div class="viz-preview viz-card">
                 @if (Model.Result != null && !Model.Result.Success)
                 {
-                    <div class="alert alert-warning">@Model.Result.ErrorMessage</div>
+                    if (Model.Result.ParameterErrors.Count > 0)
+                    {
+                        <div class="alert alert-warning">
+                            <ul class="mb-0 ps-3">
+                                @foreach (var error in Model.Result.ParameterErrors)
+                                {
+                                    <li>
+                                        @if (!string.IsNullOrWhiteSpace(error.Parameter))
+                                        {
+                                            <span>Parameter <strong>@error.Parameter</strong> @error.Message</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@error.Message</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">@Model.Result.ErrorMessage</div>
+                    }
                 }
                 else if (Model.Result != null && Model.Result.Success)
                 {
@@ -218,6 +276,29 @@
         </div>
     </div>
 </div>
+
+@if (Model.Id.HasValue && Model.CanDelete)
+{
+    <div class="modal fade" id="deleteVisualizationModal" tabindex="-1" aria-labelledby="deleteVisualizationTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteVisualizationTitle">Delete visualization?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">This will remove the visualization from this query. This cannot be undone.</p>
+                    <div class="alert alert-warning d-none" id="deleteVisualizationBlocked"></div>
+                    <ul class="list-unstyled d-none" id="deleteVisualizationDashboards"></ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteVisualizationBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
@@ -291,4 +372,90 @@
         stackedToggle?.addEventListener('change', updateFloatingState);
         updateFloatingState();
     </script>
+    @if (Model.Id.HasValue && Model.CanDelete)
+    {
+        <script>
+            (() => {
+                const deleteBtn = document.getElementById('deleteVisualizationBtn');
+                const modalEl = document.getElementById('deleteVisualizationModal');
+                const confirmBtn = document.getElementById('confirmDeleteVisualizationBtn');
+                const blockedAlert = document.getElementById('deleteVisualizationBlocked');
+                const dashboardsList = document.getElementById('deleteVisualizationDashboards');
+                const token = document.querySelector('input[name="__RequestVerificationToken"]');
+                if (!deleteBtn || !modalEl || !confirmBtn || !blockedAlert || !dashboardsList || !token) return;
+
+                const modal = window.bootstrap?.Modal ? new bootstrap.Modal(modalEl) : null;
+                const visualizationId = deleteBtn.dataset.visualizationId;
+                const queryId = deleteBtn.dataset.queryId;
+
+                const setBlockedState = (message, dashboards) => {
+                    blockedAlert.textContent = message;
+                    blockedAlert.classList.remove('d-none');
+                    dashboardsList.innerHTML = '';
+                    if (dashboards.length > 0) {
+                        dashboardsList.classList.remove('d-none');
+                        dashboards.slice(0, 5).forEach(name => {
+                            const item = document.createElement('li');
+                            item.textContent = name;
+                            dashboardsList.appendChild(item);
+                        });
+                        if (dashboards.length > 5) {
+                            const more = document.createElement('li');
+                            more.textContent = `and ${dashboards.length - 5} more`;
+                            dashboardsList.appendChild(more);
+                        }
+                    } else {
+                        dashboardsList.classList.add('d-none');
+                    }
+                    confirmBtn.disabled = true;
+                };
+
+                const resetModal = () => {
+                    blockedAlert.classList.add('d-none');
+                    blockedAlert.textContent = '';
+                    dashboardsList.classList.add('d-none');
+                    dashboardsList.innerHTML = '';
+                    confirmBtn.disabled = false;
+                };
+
+                deleteBtn.addEventListener('click', () => {
+                    resetModal();
+                    modal?.show();
+                });
+
+                confirmBtn.addEventListener('click', async () => {
+                    if (!visualizationId) return;
+                    confirmBtn.disabled = true;
+                    try {
+                        const response = await fetch(`/visualizations/${encodeURIComponent(visualizationId)}/delete`, {
+                            method: 'POST',
+                            headers: {
+                                'RequestVerificationToken': token.value
+                            }
+                        });
+                        if (!response.ok) {
+                            setBlockedState('Unable to delete visualization.', []);
+                            return;
+                        }
+                        const payload = await response.json();
+                        if (!payload.success) {
+                            const dashboards = Array.isArray(payload.affectedDashboards) ? payload.affectedDashboards : [];
+                            const message = payload.message || 'Cannot delete visualization.';
+                            setBlockedState(message, dashboards);
+                            return;
+                        }
+                        if (queryId) {
+                            window.location.href = `/Queries/Edit/${encodeURIComponent(queryId)}`;
+                        } else {
+                            window.location.reload();
+                        }
+                    } catch (err) {
+                        setBlockedState('Unable to delete visualization.', []);
+                    } finally {
+                        confirmBtn.disabled = false;
+                    }
+                });
+            })();
+        </script>
+    }
 }

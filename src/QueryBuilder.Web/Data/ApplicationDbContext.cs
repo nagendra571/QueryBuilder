@@ -62,6 +62,13 @@ public class ApplicationDbContext : IdentityDbContext
             entity.HasIndex(p => p.QueryId);
         });
 
+        builder.Entity<Visualization>(entity =>
+        {
+            entity.Property(v => v.IsDeleted).HasDefaultValue(false);
+            entity.HasQueryFilter(v => !v.IsDeleted);
+            entity.HasIndex(v => v.IsDeleted);
+        });
+
         builder.Entity<DashboardParameterControl>(entity =>
         {
             entity.Property(p => p.Key).HasMaxLength(200);

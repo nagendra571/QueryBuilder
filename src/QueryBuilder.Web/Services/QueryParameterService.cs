@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QueryBuilder.Domain.Entities;
 using QueryBuilder.Web.Data;
+using QueryBuilder.Web.Models.Queries;
 
 namespace QueryBuilder.Web.Services;
 
@@ -55,7 +56,7 @@ public class QueryParameterService : IQueryParameterService
 
             if (suffix != null && !IsRangeToken(definition.Type))
             {
-                result.Errors.Add($"Parameter '{baseName}' does not support '{suffix}'.");
+                AddError(result.Errors, NormalizeKey(baseName), $"does not support '{suffix}'.");
                 continue;
             }
 
@@ -66,11 +67,17 @@ public class QueryParameterService : IQueryParameterService
 
             if (string.IsNullOrWhiteSpace(value))
             {
-                result.Errors.Add($"Missing parameter value: {NormalizeKey(valueKey)}");
+                AddError(result.Errors, NormalizeKey(valueKey), "is missing a value.");
                 continue;
             }
 
-            var formatted = await FormatValueAsync(definition, value!, suffix, request.AllowText, result.Errors);
+            var formatted = await FormatValueAsync(
+                definition,
+                value!,
+                suffix,
+                request.AllowText,
+                NormalizeKey(valueKey),
+                result.Errors);
             if (formatted != null)
             {
                 replacements[token] = formatted;
@@ -87,7 +94,7 @@ public class QueryParameterService : IQueryParameterService
         var substituted = Substitute(request.Sql, replacements);
         if (!IsSafeSelect(substituted))
         {
-            result.Errors.Add("Query must be a single SELECT statement.");
+            AddError(result.Errors, null, "Query must be a single SELECT statement.");
             result.Success = false;
             return result;
         }
@@ -127,21 +134,22 @@ public class QueryParameterService : IQueryParameterService
         string value,
         string? suffix,
         bool allowText,
-        List<string> errors)
+        string parameterKey,
+        List<QueryParameterValidationError> errors)
     {
         switch (definition.Type)
         {
             case QueryParameterType.Text:
                 if (!allowText)
                 {
-                    errors.Add($"Text parameter '{definition.Name}' is not allowed.");
+                    AddError(errors, parameterKey, "is not allowed to use text values.");
                     return null;
                 }
                 return $"'{EscapeSql(value)}'";
             case QueryParameterType.Number:
                 if (!decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number))
                 {
-                    errors.Add($"Parameter '{definition.Name}' must be a number.");
+                    AddError(errors, parameterKey, "must be a number.");
                     return null;
                 }
                 return number.ToString(CultureInfo.InvariantCulture);
@@ -149,7 +157,7 @@ public class QueryParameterService : IQueryParameterService
                 var options = await ResolveDropdownOptionsAsync(definition);
                 if (options.Count > 0 && !options.Contains(value))
                 {
-                    errors.Add($"Parameter '{definition.Name}' has an invalid value.");
+                    AddError(errors, parameterKey, "has an invalid value.");
                     return null;
                 }
                 if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var numericValue))
@@ -160,14 +168,14 @@ public class QueryParameterService : IQueryParameterService
             case QueryParameterType.Date:
                 if (!DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dateValue))
                 {
-                    errors.Add($"Parameter '{definition.Name}' must be a valid date.");
+                    AddError(errors, parameterKey, "must be a valid date.");
                     return null;
                 }
                 return $"'{dateValue:yyyy-MM-dd}'";
             case QueryParameterType.DateTime:
                 if (!DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dateTimeValue))
                 {
-                    errors.Add($"Parameter '{definition.Name}' must be a valid datetime.");
+                    AddError(errors, parameterKey, "must be a valid datetime.");
                     return null;
                 }
                 return $"'{dateTimeValue:yyyy-MM-dd HH:mm:ss}'";
@@ -175,18 +183,18 @@ public class QueryParameterService : IQueryParameterService
             case QueryParameterType.DateTimeRange:
                 if (suffix is not ("start" or "end"))
                 {
-                    errors.Add($"Parameter '{definition.Name}' requires start and end values.");
+                    AddError(errors, parameterKey, "requires start and end values.");
                     return null;
                 }
                 if (!DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var rangeValue))
                 {
-                    errors.Add($"Parameter '{definition.Name}.{suffix}' must be a valid date.");
+                    AddError(errors, parameterKey, "must be a valid date.");
                     return null;
                 }
                 var format = definition.Type == QueryParameterType.DateRange ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm:ss";
                 return $"'{rangeValue.ToString(format, CultureInfo.InvariantCulture)}'";
             default:
-                errors.Add($"Parameter '{definition.Name}' has unsupported type.");
+                AddError(errors, parameterKey, "has an unsupported type.");
                 return null;
         }
     }
@@ -258,6 +266,15 @@ public class QueryParameterService : IQueryParameterService
     private static string NormalizeKey(string value)
     {
         return value.Trim().ToLowerInvariant();
+    }
+
+    private static void AddError(List<QueryParameterValidationError> errors, string? parameter, string message)
+    {
+        errors.Add(new QueryParameterValidationError
+        {
+            Parameter = string.IsNullOrWhiteSpace(parameter) ? null : NormalizeKey(parameter),
+            Message = message
+        });
     }
 
     private static bool IsSafeSelect(string sql)
