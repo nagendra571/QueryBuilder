@@ -26,10 +26,12 @@
     </div>
 </div>
 <input type="hidden" name="SubmitAction" id="submitActionHidden" />
+<button type="submit" name="SubmitAction" value="run" id="runQuerySubmit" class="d-none" tabindex="-1"></button>
+<button type="submit" name="SubmitAction" value="save" id="saveQuerySubmit" class="d-none" tabindex="-1"></button>
 
 <div class="query-editor-body" id="queryEditorBody">
-    <div class="query-layout">
-        <div class="query-schema-panel">
+    <div class="query-layout" data-split-layout="true">
+        <div class="query-schema-panel" data-split-left="true">
             <div class="query-section-label">Schema browser</div>
             <div class="mb-3">
                 <label asp-for="DataSourceId" class="form-label"></label>
@@ -45,81 +47,193 @@
             </div>
         </div>
 
-        <div class="query-editor-panel">
-            <div class="query-section-label">SQL editor</div>
-            <div class="mb-3">
-                <label asp-for="SqlText" class="form-label"></label>
-                <div class="sql-editor">
-                    <pre class="sql-gutter" id="sqlLineNumbers">1</pre>
-                    <textarea asp-for="SqlText" class="form-control font-monospace sql-editor-input" rows="11" placeholder="Write your SQL here..."></textarea>
+        <div class="splitter-vertical" id="splitterVertical" aria-hidden="true"></div>
+
+        <div class="query-editor-panel" data-split-right="true">
+                <div class="query-section-label">SQL editor</div>
+                <div class="mb-3">
+                    <label asp-for="SqlText" class="form-label"></label>
+                    <div class="sql-editor">
+                        <pre class="sql-gutter" id="sqlLineNumbers">1</pre>
+                        <textarea asp-for="SqlText" class="form-control font-monospace sql-editor-input" rows="11" placeholder="Write your SQL here..."></textarea>
+                    </div>
+                    <span asp-validation-for="SqlText" class="text-danger"></span>
+                    <div class="form-text">MVP supports SELECT queries only.</div>
                 </div>
-                <span asp-validation-for="SqlText" class="text-danger"></span>
-                <div class="form-text">MVP supports SELECT queries only.</div>
-            </div>
-            <div class="sql-editor-actions">
-                <div class="sql-editor-actions-left">
-                    @if (Model.Id.HasValue)
-                    {
+                <div class="sql-editor-actions">
+                    <div class="sql-editor-actions-left">
+                        @if (Model.Id.HasValue)
+                        {
+                            <button class="btn btn-sm btn-light"
+                                    type="button"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#addParameterModal"
+                                    data-bs-toggle="tooltip"
+                                    data-bs-title="Add parameter">
+                                {{ }}
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-light"
+                                    type="button"
+                                    disabled
+                                    data-bs-toggle="tooltip"
+                                    data-bs-title="Save the query to add parameters.">
+                                {{ }}
+                            </button>
+                        }
                         <button class="btn btn-sm btn-light"
                                 type="button"
-                                data-bs-toggle="modal"
-                                data-bs-target="#addParameterModal"
+                                id="formatSqlBtn"
                                 data-bs-toggle="tooltip"
-                                data-bs-title="Add parameter">
-                            {{ }}
+                                data-bs-title="Format SQL">
+                            <i class="bi bi-code-slash"></i>
+                        </button>
+                        <button class="btn btn-sm btn-light"
+                                type="button"
+                                id="toggleAutocompleteBtn"
+                                data-bs-toggle="tooltip"
+                                data-bs-title="Toggle autocomplete">
+                            <i class="bi bi-lightning"></i>
+                        </button>
+                    </div>
+                <div class="sql-editor-actions-right">
+                    <button class="btn btn-sm btn-primary" type="button" id="runQueryInlineBtn">Run Query</button>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="saveQueryInlineBtn">Save</button>
+                </div>
+            </div>
+            <div class="sql-editor-meta">
+                <button class="btn btn-link btn-sm p-0" type="button" id="resetLayoutBtn">Reset layout</button>
+            </div>
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="query-section-label mb-0">Parameters</div>
+                    @if (Model.Id.HasValue)
+                    {
+                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#addParameterModal">
+                            + Add Parameter
                         </button>
                     }
                     else
                     {
-                        <button class="btn btn-sm btn-light"
-                                type="button"
-                                disabled
-                                data-bs-toggle="tooltip"
-                                data-bs-title="Save the query to add parameters.">
-                            {{ }}
+                        <button class="btn btn-sm btn-outline-primary" type="button" disabled title="Save the query to configure parameter settings.">
+                            + Add Parameter
                         </button>
                     }
-                    <button class="btn btn-sm btn-light"
-                            type="button"
-                            id="formatSqlBtn"
-                            data-bs-toggle="tooltip"
-                            data-bs-title="Format SQL">
-                        <i class="bi bi-code-slash"></i>
-                    </button>
-                    <button class="btn btn-sm btn-light"
-                            type="button"
-                            id="toggleAutocompleteBtn"
-                            data-bs-toggle="tooltip"
-                            data-bs-title="Toggle autocomplete">
-                        <i class="bi bi-lightning"></i>
-                    </button>
                 </div>
-                <div class="sql-editor-actions-right">
-                    <button class="btn btn-sm btn-outline-secondary" type="submit" name="SubmitAction" value="save">Save</button>
-                    <button class="btn btn-sm btn-primary" type="submit" name="SubmitAction" value="run">Execute</button>
-                </div>
-            </div>
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="query-section-label mb-0">Parameters</div>
-                @if (Model.Id.HasValue)
+                <partial name="_QueryParametersBar" model="Model" />
+                @if (!Model.Id.HasValue)
                 {
-                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#addParameterModal">
-                        + Add Parameter
-                    </button>
+                    <div class="form-text text-muted mt-2">
+                        Type {{param}} in SQL to add parameters. Save the query to configure parameter settings.
+                    </div>
+                }
+            @if (Model.Result != null)
+            {
+                if (Model.Result.Success)
+                {
+                    <div class="alert alert-success">
+                        Query executed in @Model.Result.DurationMs ms. Rows returned: @Model.Result.RowCount.
+                    </div>
                 }
                 else
                 {
-                    <button class="btn btn-sm btn-outline-primary" type="button" disabled title="Save the query to configure parameter settings.">
-                        + Add Parameter
-                    </button>
+                    <div class="alert alert-danger">
+                        @Model.Result.ErrorMessage
+                    </div>
                 }
-            </div>
-            <partial name="_QueryParametersBar" model="Model" />
-            @if (!Model.Id.HasValue)
-            {
-                <div class="form-text text-muted mt-2">
-                    Type {{param}} in SQL to add parameters. Save the query to configure parameter settings.
-                </div>
+
+                if (Model.Result.Success)
+                {
+                    <div class="results-card card">
+                        <div class="card-header d-flex align-items-center justify-content-between">
+                            <ul class="nav nav-tabs card-header-tabs" id="resultsTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="tab-table" data-bs-toggle="tab" data-bs-target="#tabTablePane" type="button" role="tab">Table</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-viz" data-bs-toggle="tab" data-bs-target="#tabVizPane" type="button" role="tab">Visualizations</button>
+                                </li>
+                            </ul>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" id="downloadCsvBtn">Download CSV</button>
+                                @if (Model.Id.HasValue && Model.Result.Success)
+                                {
+                                    <a class="btn btn-sm btn-primary" asp-controller="Visualizations" asp-action="Create" asp-route-queryId="@Model.Id">+ New Visualization</a>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-primary" type="button" disabled title="Run and save the query before creating a visualization.">
+                                        + New Visualization
+                                    </button>
+                                }
+                            </div>
+                            @if (!Model.Id.HasValue || !Model.Result.Success)
+                            {
+                                <div class="form-text text-muted mt-2">
+                                    Save and successfully run the query to create a visualization.
+                                </div>
+                            }
+                        </div>
+                        <div class="card-body tab-content">
+                            <div class="tab-pane fade show active" id="tabTablePane" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped mb-0">
+                                        <thead>
+                                        <tr>
+                                            @foreach (var column in Model.Result.Columns)
+                                            {
+                                                <th>@column</th>
+                                            }
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        @if (Model.Result.Rows.Count == 0)
+                                        {
+                                            <tr>
+                                                <td colspan="@Model.Result.Columns.Count" class="text-muted">No rows returned.</td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            foreach (var row in Model.Result.Rows)
+                                            {
+                                                <tr>
+                                                    @foreach (var cell in row)
+                                                    {
+                                                        <td>@cell</td>
+                                                    }
+                                                </tr>
+                                            }
+                                        }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="tabVizPane" role="tabpanel">
+                                @if (Model.Visualizations.Count == 0)
+                                {
+                                    <div class="text-muted">No visualizations yet. Create one to see it here.</div>
+                                }
+                                else
+                                {
+                                    <div class="list-group">
+                                        @foreach (var viz in Model.Visualizations)
+                                        {
+                                            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                               asp-controller="Visualizations"
+                                               asp-action="Details"
+                                               asp-route-id="@viz.Id">
+                                                <span>@viz.Name</span>
+                                                <span class="badge text-bg-secondary">@viz.Type</span>
+                                            </a>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
             }
         </div>
     </div>
@@ -483,114 +597,6 @@
     })();
 </script>
 
-@if (Model.Result != null)
-{
-    if (Model.Result.Success)
-    {
-        <div class="alert alert-success">
-            Query executed in @Model.Result.DurationMs ms. Rows returned: @Model.Result.RowCount.
-        </div>
-    }
-    else
-    {
-        <div class="alert alert-danger">
-            @Model.Result.ErrorMessage
-        </div>
-    }
-
-    if (Model.Result.Success)
-    {
-        <div class="results-card card">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <ul class="nav nav-tabs card-header-tabs" id="resultsTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="tab-table" data-bs-toggle="tab" data-bs-target="#tabTablePane" type="button" role="tab">Table</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="tab-viz" data-bs-toggle="tab" data-bs-target="#tabVizPane" type="button" role="tab">Visualizations</button>
-                    </li>
-                </ul>
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-sm btn-outline-secondary" type="button" id="downloadCsvBtn">Download CSV</button>
-                    @if (Model.Id.HasValue && Model.Result.Success)
-                    {
-                        <a class="btn btn-sm btn-primary" asp-controller="Visualizations" asp-action="Create" asp-route-queryId="@Model.Id">+ New Visualization</a>
-                    }
-                    else
-                    {
-                        <button class="btn btn-sm btn-primary" type="button" disabled title="Run and save the query before creating a visualization.">
-                            + New Visualization
-                        </button>
-                    }
-                </div>
-                @if (!Model.Id.HasValue || !Model.Result.Success)
-                {
-                    <div class="form-text text-muted mt-2">
-                        Save and successfully run the query to create a visualization.
-                    </div>
-                }
-            </div>
-            <div class="card-body tab-content">
-                <div class="tab-pane fade show active" id="tabTablePane" role="tabpanel">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-striped mb-0">
-                            <thead>
-                            <tr>
-                                @foreach (var column in Model.Result.Columns)
-                                {
-                                    <th>@column</th>
-                                }
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @if (Model.Result.Rows.Count == 0)
-                            {
-                                <tr>
-                                    <td colspan="@Model.Result.Columns.Count" class="text-muted">No rows returned.</td>
-                                </tr>
-                            }
-                            else
-                            {
-                                foreach (var row in Model.Result.Rows)
-                                {
-                                    <tr>
-                                        @foreach (var cell in row)
-                                        {
-                                            <td>@cell</td>
-                                        }
-                                    </tr>
-                                }
-                            }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="tab-pane fade" id="tabVizPane" role="tabpanel">
-                    @if (Model.Visualizations.Count == 0)
-                    {
-                        <div class="text-muted">No visualizations yet. Create one to see it here.</div>
-                    }
-                    else
-                    {
-                        <div class="list-group">
-                            @foreach (var viz in Model.Visualizations)
-                            {
-                                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                                   asp-controller="Visualizations"
-                                   asp-action="Details"
-                                   asp-route-id="@viz.Id">
-                                    <span>@viz.Name</span>
-                                    <span class="badge text-bg-secondary">@viz.Type</span>
-                                </a>
-                            }
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-    }
-}
-
 <script>
     (() => {
         const toggle = document.getElementById('showDataOnlyToggle');
@@ -604,11 +610,115 @@
 
 <script>
     (() => {
+        const layout = document.querySelector('[data-split-layout="true"]');
+        const leftPane = document.querySelector('[data-split-left="true"]');
+        const splitter = document.getElementById('splitterVertical');
+        const rightPane = document.querySelector('[data-split-right="true"]');
+        if (!layout || !leftPane || !splitter || !rightPane) return;
+
+        const storageKey = 'queryEditor.leftWidth';
+        const defaultWidth = 320;
+        const minLeft = 220;
+        const rightMin = 480;
+        const splitterWidth = 8;
+        const mediaQuery = window.matchMedia('(max-width: 991.98px)');
+
+        const getMaxLeft = () => {
+            const maxByPercent = Math.floor(layout.clientWidth * 0.45);
+            const maxByWidth = layout.clientWidth - rightMin - splitterWidth;
+            return Math.max(minLeft, Math.min(520, maxByPercent, maxByWidth));
+        };
+
+        const applyWidth = (value) => {
+            if (mediaQuery.matches) return;
+            const maxLeft = getMaxLeft();
+            const width = Math.max(minLeft, Math.min(maxLeft, value));
+            leftPane.style.width = `${width}px`;
+            window.dispatchEvent(new Event('resize'));
+            window.queryBuilderEditor?.requestMeasure?.();
+        };
+
+        const resetWidth = () => {
+            applyWidth(defaultWidth);
+            localStorage.removeItem(storageKey);
+        };
+
+        window.queryBuilderSplit = window.queryBuilderSplit || {};
+        window.queryBuilderSplit.resetVertical = resetWidth;
+
+        const stored = Number(localStorage.getItem(storageKey));
+        if (mediaQuery.matches) {
+            resetWidth();
+        } else if (!Number.isNaN(stored) && stored > 0) {
+            applyWidth(stored);
+        } else {
+            applyWidth(defaultWidth);
+        }
+
+        let startX = 0;
+        let startWidth = 0;
+        let rafId = 0;
+
+        const onPointerMove = (event) => {
+            if (rafId) return;
+            rafId = requestAnimationFrame(() => {
+                rafId = 0;
+                const delta = event.clientX - startX;
+                applyWidth(startWidth + delta);
+            });
+        };
+
+        const onPointerUp = (event) => {
+            document.body.classList.remove('is-splitting');
+            splitter.releasePointerCapture(event.pointerId);
+            document.removeEventListener('pointermove', onPointerMove);
+            document.removeEventListener('pointerup', onPointerUp);
+            const currentWidth = leftPane.getBoundingClientRect().width;
+            localStorage.setItem(storageKey, Math.round(currentWidth).toString());
+        };
+
+        splitter.addEventListener('pointerdown', (event) => {
+            if (mediaQuery.matches) return;
+            startX = event.clientX;
+            startWidth = leftPane.getBoundingClientRect().width;
+            splitter.setPointerCapture(event.pointerId);
+            document.body.classList.add('is-splitting');
+            document.addEventListener('pointermove', onPointerMove);
+            document.addEventListener('pointerup', onPointerUp);
+        });
+
+        splitter.addEventListener('dblclick', () => resetWidth());
+
+        mediaQuery.addEventListener('change', () => {
+            if (mediaQuery.matches) {
+                resetWidth();
+                leftPane.style.width = '';
+            } else {
+                const latest = Number(localStorage.getItem(storageKey)) || defaultWidth;
+                applyWidth(latest);
+            }
+        });
+    })();
+</script>
+
+<script>
+    (() => {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach((el) => {
             if (window.bootstrap?.Tooltip) {
                 new bootstrap.Tooltip(el);
             }
+        });
+    })();
+</script>
+
+<script>
+    (() => {
+        const resetBtn = document.getElementById('resetLayoutBtn');
+        if (!resetBtn) return;
+        resetBtn.addEventListener('click', () => {
+            localStorage.removeItem('queryEditor.leftWidth');
+            window.queryBuilderSplit?.resetVertical?.();
         });
     })();
 </script>
@@ -798,9 +908,23 @@
 
 <script>
     (() => {
-        const form = document.querySelector('form');
-        const submitAction = document.getElementById('submitActionHidden');
-        if (!form || !submitAction) return;
+        const runInlineBtn = document.getElementById('runQueryInlineBtn');
+        const saveInlineBtn = document.getElementById('saveQueryInlineBtn');
+        const form = runInlineBtn?.closest('form');
+        const submitAction = form?.querySelector('#submitActionHidden');
+        const runSubmit = form?.querySelector('#runQuerySubmit');
+        const saveSubmit = form?.querySelector('#saveQuerySubmit');
+        if (!form || !submitAction || !runSubmit || !saveSubmit) return;
+        runInlineBtn?.addEventListener('click', (event) => {
+            event.preventDefault();
+            submitAction.value = 'run';
+            form.requestSubmit(runSubmit);
+        });
+        saveInlineBtn?.addEventListener('click', (event) => {
+            event.preventDefault();
+            submitAction.value = 'save';
+            form.requestSubmit(saveSubmit);
+        });
         document.addEventListener('keydown', (event) => {
             const isCmd = event.metaKey && !event.ctrlKey;
             const isCtrl = event.ctrlKey && !event.metaKey;
