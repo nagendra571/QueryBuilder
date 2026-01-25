@@ -85,7 +85,7 @@ public class PublicControllerTests
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var publicShareService = new PublicShareService(dbContext);
         var parameterService = new FakeQueryParameterService();
-        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance, parameterService);
+        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance, parameterService, new TableVisualizationConfigBuilder());
 
         var result = await controller.Dashboard("valid-token");
 
@@ -100,7 +100,7 @@ public class PublicControllerTests
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var publicShareService = new PublicShareService(dbContext);
         var parameterService = new FakeQueryParameterService();
-        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance, parameterService);
+        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance, parameterService, new TableVisualizationConfigBuilder());
 
         var result = await controller.Dashboard("missing-token");
 
@@ -127,7 +127,7 @@ public class PublicControllerTests
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var publicShareService = new PublicShareService(dbContext);
         var parameterService = new FakeQueryParameterService();
-        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance, parameterService);
+        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance, parameterService, new TableVisualizationConfigBuilder());
 
         var result = await controller.EmbedDashboard("disabled-token");
 

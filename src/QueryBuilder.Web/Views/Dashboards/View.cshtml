@@ -210,6 +210,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/table-visualization-renderer.js" asp-append-version="true"></script>
     <script>
         const widgets = [];
         const widgetParameters = @Html.Raw(JsonSerializer.Serialize(Model.WidgetParameters, jsonOptions));
@@ -219,12 +220,12 @@
             var rowsJson = JsonSerializer.Serialize(widget.Result.Rows);
             var colsJson = JsonSerializer.Serialize(widget.Result.Columns);
             <text>
-            widgets.push({
-                id: @widget.Widget.Id,
-                x: @widget.Widget.X,
-                y: @widget.Widget.Y,
-                w: @widget.Widget.Width,
-                h: @widget.Widget.Height,
+                widgets.push({
+                    id: @widget.Widget.Id,
+                    x: @widget.Widget.X,
+                    y: @widget.Widget.Y,
+                    w: @widget.Widget.Width,
+                    h: @widget.Widget.Height,
                 visualizationId: @widget.Visualization.Id,
                 visualizationName: "@widget.Visualization.Name",
                 visualizationType: "@widget.Visualization.Type",
@@ -241,11 +242,12 @@
                 useFloatingBars: @widget.Config.UseFloatingBars.ToString().ToLowerInvariant(),
                 rangeStartColumn: "@(widget.Config.RangeStartColumn ?? string.Empty)",
                 rangeEndColumn: "@(widget.Config.RangeEndColumn ?? string.Empty)",
-                labelColumn: "@(widget.Config.LabelColumn ?? string.Empty)",
-                valueColumn: "@(widget.Config.ValueColumn ?? string.Empty)",
-                showLegend: @widget.Config.ShowLegend.ToString().ToLowerInvariant(),
-                lineInterpolationMode: "@(widget.Config.LineInterpolationMode ?? "default")"
-            });
+                    labelColumn: "@(widget.Config.LabelColumn ?? string.Empty)",
+                    valueColumn: "@(widget.Config.ValueColumn ?? string.Empty)",
+                    showLegend: @widget.Config.ShowLegend.ToString().ToLowerInvariant(),
+                    lineInterpolationMode: "@(widget.Config.LineInterpolationMode ?? "default")",
+                    tableConfig: @Html.Raw(JsonSerializer.Serialize(widget.TableConfig, jsonOptions))
+                });
             </text>
         }
 
@@ -313,29 +315,16 @@
             body.dataset.widgetBody = widget.id;
 
             if (widget.visualizationType === "Table") {
-                const table = document.createElement('table');
-                table.className = 'table table-sm table-hover mb-0';
-                const thead = document.createElement('thead');
-                const headRow = document.createElement('tr');
-                widget.columns.forEach(col => {
-                    const th = document.createElement('th');
-                    th.textContent = col;
-                    headRow.appendChild(th);
-                });
-                thead.appendChild(headRow);
-                table.appendChild(thead);
-                const tbody = document.createElement('tbody');
-                widget.rows.forEach(row => {
-                    const tr = document.createElement('tr');
-                    row.forEach(cell => {
-                        const td = document.createElement('td');
-                        td.textContent = cell ?? '';
-                        tr.appendChild(td);
+                const tableHost = document.createElement('div');
+                body.appendChild(tableHost);
+                if (window.queryBuilderTable?.render) {
+                    window.queryBuilderTable.render(tableHost, {
+                        columns: widget.columns,
+                        rows: widget.rows,
+                        config: widget.tableConfig || {},
+                        allowUnsafeHtml: @((User.IsInRole("Admin") || User.IsInRole("Editor")).ToString().ToLowerInvariant())
                     });
-                    tbody.appendChild(tr);
-                });
-                table.appendChild(tbody);
-                body.appendChild(table);
+                }
             } else {
                 const canvas = document.createElement('canvas');
                 canvas.id = `viz-${widget.id}`;
@@ -401,7 +390,9 @@
                 visualizationType: widget.visualizationType,
                 autoRefreshEnabled: widget.autoRefreshEnabled,
                 autoRefreshInterval: widget.autoRefreshInterval,
-                endpoint: `/dashboards/data/${@Model.Dashboard.Id}/widgets/${widget.id}`
+                endpoint: `/dashboards/data/${@Model.Dashboard.Id}/widgets/${widget.id}`,
+                tableConfig: widget.tableConfig,
+                allowUnsafeHtml: @((User.IsInRole("Admin") || User.IsInRole("Editor")).ToString().ToLowerInvariant())
             }))
         };
     </script>

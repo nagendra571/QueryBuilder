@@ -5,6 +5,9 @@
     ViewData["Title"] = Model.Visualization.Name;
     var dataJson = JsonSerializer.Serialize(Model.Result.Rows);
     var columnsJson = JsonSerializer.Serialize(Model.Result.Columns);
+    var tableConfigJson = JsonSerializer.Serialize(
+        Model.TableConfig ?? new QueryBuilder.Web.Models.Visualizations.TableVisualizationConfig(),
+        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 }
 
     <div class="viz-details-header d-flex align-items-center justify-content-between mb-3">
@@ -53,37 +56,34 @@ else
     @if (Model.Visualization.Type == QueryBuilder.Domain.Entities.VisualizationType.Table)
     {
         <div class="card viz-card" id="viz-details-container" data-visualization-id="@Model.Visualization.Id" data-visualization-type="@Model.Visualization.Type">
-            <div class="table-responsive">
-                <table class="table table-sm mb-0">
-                    <thead>
-                    <tr>
-                        @foreach (var column in Model.Result.Columns)
-                        {
-                            <th>@column</th>
-                        }
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @if (Model.Result.Rows.Count == 0)
-                    {
-                        <tr>
-                            <td colspan="@Model.Result.Columns.Count" class="text-muted">No rows returned.</td>
-                        </tr>
-                    }
-                    else
-                    {
-                        foreach (var row in Model.Result.Rows)
-                        {
-                            <tr>
-                                @foreach (var cell in row)
-                                {
-                                    <td>@cell</td>
-                                }
-                            </tr>
-                        }
-                    }
-                    </tbody>
-                </table>
+            <div class="p-3"
+                 data-paged-table="true"
+                 data-endpoint="/visualizations/@Model.Visualization.Id/results"
+                 data-storage-key="vizView.pageSize"
+                 data-table-config="@tableConfigJson"
+                 data-allow-unsafe-html="@((User.IsInRole("Admin") || User.IsInRole("Editor")).ToString().ToLowerInvariant())">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="text-muted small" data-page-status>Page 1</div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="form-label mb-0 small">Rows per page</label>
+                        <select class="form-select form-select-sm" data-page-size>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="250">250</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="text-muted" data-page-loading>Loading results...</div>
+                <div data-page-table></div>
+                <div class="d-flex justify-content-between align-items-center mt-2" data-page-controls>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" type="button" data-page-prev>Prev</button>
+                        <button class="btn btn-outline-secondary" type="button" data-page-next>Next</button>
+                    </div>
+                    <div class="text-muted small" data-page-info></div>
+                </div>
             </div>
         </div>
     }
@@ -120,10 +120,24 @@ else
         };
     </script>
 }
+else
+{
+    <script>
+        window.queryBuilderTable = window.queryBuilderTable || {};
+        window.queryBuilderTable.details = {
+            columns: @Html.Raw(columnsJson),
+            rows: @Html.Raw(dataJson),
+            config: @Html.Raw(tableConfigJson),
+            allowUnsafeHtml: @((User.IsInRole("Admin") || User.IsInRole("Editor")).ToString().ToLowerInvariant())
+        };
+    </script>
+}
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="~/js/visualizations.js" asp-append-version="true"></script>
+    <script src="~/js/table-visualization-renderer.js" asp-append-version="true"></script>
+    <script src="~/js/paged-results.js" asp-append-version="true"></script>
     <script>
         window.autoRefreshConfig = {
             mode: "visualization",

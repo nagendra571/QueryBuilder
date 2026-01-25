@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
 using QueryBuilder.Domain.Entities;
 using QueryBuilder.Web.Controllers;
 using QueryBuilder.Web.Models.Queries;
@@ -61,7 +62,7 @@ public class QueriesControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var parameterService = new FakeQueryParameterService();
 
-        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService)
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService, new QueryExecutionPreviewService(dbContext), NullLogger<QueriesController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("editor-1", "Editor"))
@@ -105,7 +106,7 @@ public class QueriesControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var parameterService = new FakeQueryParameterService();
 
-        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService)
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService, new QueryExecutionPreviewService(dbContext), NullLogger<QueriesController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("editor-1", "Editor"))
@@ -148,7 +149,7 @@ public class QueriesControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var parameterService = new FakeQueryParameterService();
 
-        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService)
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService, new QueryExecutionPreviewService(dbContext), NullLogger<QueriesController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("editor-1", "Editor"))
@@ -190,7 +191,7 @@ public class QueriesControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var parameterService = new FakeQueryParameterService();
 
-        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService)
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService, new QueryExecutionPreviewService(dbContext), NullLogger<QueriesController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("editor-2", "Editor"))
@@ -250,7 +251,7 @@ public class QueriesControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var parameterService = new FakeQueryParameterService();
 
-        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService)
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService, new QueryExecutionPreviewService(dbContext), NullLogger<QueriesController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("editor-1", "Editor"))
@@ -298,7 +299,7 @@ public class QueriesControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var parameterService = new FakeQueryParameterService();
 
-        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService)
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService, new QueryExecutionPreviewService(dbContext), NullLogger<QueriesController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("viewer-1", "Viewer"))
@@ -350,7 +351,7 @@ public class QueriesControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var parameterService = new FakeQueryParameterService();
 
-        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService)
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService, new QueryExecutionPreviewService(dbContext), NullLogger<QueriesController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser(userId, "Viewer"))
@@ -430,7 +431,7 @@ public class QueriesControllerTests
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var parameterService = new FakeQueryParameterService();
 
-        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService)
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService, new QueryExecutionPreviewService(dbContext), NullLogger<QueriesController>.Instance)
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("editor-1", "Editor"))
@@ -441,5 +442,108 @@ public class QueriesControllerTests
         var viewResult = result.Should().BeOfType<ViewResult>().Subject;
         var model = viewResult.Model.Should().BeAssignableTo<QueryEditViewModel>().Subject;
         model.Visualizations.Should().ContainSingle(v => v.Id == 10);
+    }
+
+    [Fact]
+    public async Task LatestExecutionPreview_Returns_Result_Contract()
+    {
+        using var dbContext = TestDbContextFactory.CreateDbContext();
+        dbContext.Queries.Add(new Query
+        {
+            Id = 1,
+            Name = "Query",
+            DataSourceId = 1,
+            SqlText = "select 1",
+            CreatedById = "editor-1",
+            UpdatedById = "editor-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.QueryExecutions.Add(new QueryExecution
+        {
+            QueryId = 1,
+            Status = QueryExecutionStatus.Success,
+            StartedAt = DateTimeOffset.UtcNow,
+            DurationMs = 5,
+            ResultJson = System.Text.Json.JsonSerializer.Serialize(new QueryExecutionResult
+            {
+                Columns = new[] { "id" },
+                Rows = new List<IReadOnlyList<string?>> { new string?[] { "1" } }
+            })
+        });
+        await dbContext.SaveChangesAsync();
+
+        var dataProtectionProvider = DataProtectionProvider.Create("QueryBuilder.Tests");
+        var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
+        var schemaBrowser = new SchemaBrowserService(dbContext, dataProtectionProvider);
+        var userManager = UserManagerMockHelper.Create("editor-1");
+        var permissionService = new PermissionService(dbContext, userManager.Object);
+        var parameterService = new FakeQueryParameterService();
+
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService, new QueryExecutionPreviewService(dbContext), NullLogger<QueriesController>.Instance)
+        {
+            ControllerContext = ControllerTestHelpers.CreateControllerContext(
+                ControllerTestHelpers.CreateUser("editor-1", "Editor"))
+        };
+
+        var result = await controller.LatestExecutionPreview(1, null);
+
+        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().BeOfType<QueryExecutionPreviewResponse>();
+        var payload = (QueryExecutionPreviewResponse)okResult.Value!;
+        payload.Success.Should().BeTrue();
+        payload.Columns.Should().ContainSingle(c => c.Name == "id");
+        payload.Rows.Should().ContainSingle(row => row["id"] == "1");
+    }
+
+    [Fact]
+    public async Task ExecutionResultsPage_Normalizes_PageSize()
+    {
+        using var dbContext = TestDbContextFactory.CreateDbContext();
+        dbContext.Queries.Add(new Query
+        {
+            Id = 1,
+            Name = "Query",
+            DataSourceId = 1,
+            SqlText = "select 1",
+            CreatedById = "editor-1",
+            UpdatedById = "editor-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.QueryExecutions.Add(new QueryExecution
+        {
+            QueryId = 1,
+            Status = QueryExecutionStatus.Success,
+            StartedAt = DateTimeOffset.UtcNow,
+            DurationMs = 5,
+            ResultJson = System.Text.Json.JsonSerializer.Serialize(new QueryExecutionResult
+            {
+                Columns = new[] { "id" },
+                Rows = new List<IReadOnlyList<string?>> { new string?[] { "1" } }
+            })
+        });
+        await dbContext.SaveChangesAsync();
+        var execution = dbContext.QueryExecutions.Single();
+
+        var dataProtectionProvider = DataProtectionProvider.Create("QueryBuilder.Tests");
+        var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
+        var schemaBrowser = new SchemaBrowserService(dbContext, dataProtectionProvider);
+        var userManager = UserManagerMockHelper.Create("editor-1");
+        var permissionService = new PermissionService(dbContext, userManager.Object);
+        var parameterService = new FakeQueryParameterService();
+
+        var controller = new QueriesController(dbContext, userManager.Object, queryRunner, permissionService, schemaBrowser, parameterService, new QueryExecutionPreviewService(dbContext), NullLogger<QueriesController>.Instance)
+        {
+            ControllerContext = ControllerTestHelpers.CreateControllerContext(
+                ControllerTestHelpers.CreateUser("editor-1", "Editor"))
+        };
+
+        var result = await controller.ExecutionResultsPage(1, execution.Id, 1, 999);
+
+        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().BeOfType<QueryExecutionPagedResultResponse>();
+        var payload = (QueryExecutionPagedResultResponse)okResult.Value!;
+        payload.PageSize.Should().Be(25);
     }
 }

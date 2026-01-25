@@ -184,12 +184,14 @@
                                        data-edit-visualization-btn="true"
                                        asp-controller="Visualizations"
                                        asp-action="Create"
-                                       asp-route-queryId="@Model.Id">Edit Visualization</a>
+                                       asp-route-queryId="@Model.Id"
+                                       asp-route-executionId="@Model.Result?.ExecutionId">Edit Visualization</a>
                                     <a class="btn btn-sm @(Model.ShowEditVisualization ? "btn-outline-primary" : "btn-primary")"
                                        data-new-visualization-btn="true"
                                        asp-controller="Visualizations"
                                        asp-action="Create"
-                                       asp-route-queryId="@Model.Id">+ New Visualization</a>
+                                       asp-route-queryId="@Model.Id"
+                                       asp-route-executionId="@Model.Result?.ExecutionId">+ New Visualization</a>
                                 }
                                 else
                                 {
@@ -207,37 +209,34 @@
                         </div>
                         <div class="card-body tab-content">
                             <div class="tab-pane fade show active" id="tabTablePane" role="tabpanel">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-striped mb-0">
-                                        <thead>
-                                        <tr>
-                                            @foreach (var column in Model.Result.Columns)
-                                            {
-                                                <th>@column</th>
-                                            }
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        @if (Model.Result.Rows.Count == 0)
-                                        {
-                                            <tr>
-                                                <td colspan="@Model.Result.Columns.Count" class="text-muted">No rows returned.</td>
-                                            </tr>
-                                        }
-                                        else
-                                        {
-                                            foreach (var row in Model.Result.Rows)
-                                            {
-                                                <tr>
-                                                    @foreach (var cell in row)
-                                                    {
-                                                        <td>@cell</td>
-                                                    }
-                                                </tr>
-                                            }
-                                        }
-                                        </tbody>
-                                    </table>
+                                <div class="query-results-pager"
+                                     data-paged-table="true"
+                                     data-query-id="@Model.Id"
+                                     data-execution-id="@Model.Result?.ExecutionId"
+                                     data-endpoint-template="/queries/{queryId}/executions/{executionId}/results"
+                                     data-storage-key="queryEditor.pageSize">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="text-muted small" data-page-status>Page 1</div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <label class="form-label mb-0 small">Rows per page</label>
+                                            <select class="form-select form-select-sm" data-page-size>
+                                                <option value="25">25</option>
+                                                <option value="50">50</option>
+                                                <option value="100">100</option>
+                                                <option value="250">250</option>
+                                                <option value="500">500</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="text-muted" data-page-loading>Loading results...</div>
+                                    <div data-page-table></div>
+                                    <div class="d-flex justify-content-between align-items-center mt-2" data-page-controls>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-secondary" type="button" data-page-prev>Prev</button>
+                                            <button class="btn btn-outline-secondary" type="button" data-page-next>Next</button>
+                                        </div>
+                                        <div class="text-muted small" data-page-info></div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="tab-pane fade" id="tabVizPane" role="tabpanel">
