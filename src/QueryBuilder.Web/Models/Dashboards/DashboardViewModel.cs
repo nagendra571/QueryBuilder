@@ -21,5 +21,6 @@ public class DashboardWidgetViewModel
     public DashboardWidget Widget { get; set; } = new();
     public Visualization Visualization { get; set; } = new();
     public VisualizationConfig Config { get; set; } = new();
+    public TableVisualizationConfig? TableConfig { get; set; }
     public QueryResultViewModel Result { get; set; } = new();
 }

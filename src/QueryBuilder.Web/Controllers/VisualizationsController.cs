@@ -22,12 +22,27 @@ public class VisualizationsController : Controller
     private readonly IVisualizationService _visualizationService;
     private readonly PermissionService _permissionService;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly TableVisualizationConfigBuilder _tableConfigBuilder;
     private static readonly HashSet<int> AllowedRefreshIntervals = new()
     {
         30, 60, 300, 600, 1800, 3600
     };
+    private static readonly JsonSerializerOptions TableConfigJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
+    private static readonly int[] AllowedPageSizes = { 25, 50, 100, 250, 500 };
 
-    public VisualizationsController(ApplicationDbContext dbContext, QueryRunner queryRunner, ILogger<VisualizationsController> logger, IQueryParameterService parameterService, IVisualizationService visualizationService, PermissionService permissionService, UserManager<IdentityUser> userManager)
+    public VisualizationsController(
+        ApplicationDbContext dbContext,
+        QueryRunner queryRunner,
+        ILogger<VisualizationsController> logger,
+        IQueryParameterService parameterService,
+        IVisualizationService visualizationService,
+        PermissionService permissionService,
+        UserManager<IdentityUser> userManager,
+        TableVisualizationConfigBuilder tableConfigBuilder)
     {
         _dbContext = dbContext;
         _queryRunner = queryRunner;
@@ -36,9 +51,10 @@ public class VisualizationsController : Controller
         _visualizationService = visualizationService;
         _permissionService = permissionService;
         _userManager = userManager;
+        _tableConfigBuilder = tableConfigBuilder;
     }
 
-    public async Task<IActionResult> Create(int queryId)
+    public async Task<IActionResult> Create(int queryId, int? executionId)
     {
         var query = await _dbContext.Queries.AsNoTracking().FirstOrDefaultAsync(q => q.Id == queryId);
         if (query == null)
@@ -93,7 +109,9 @@ public class VisualizationsController : Controller
             UseStackedBars = false,
             LineInterpolationMode = "default",
             ParameterDefinitions = definitions,
-            ParameterValues = parameterValues
+            ParameterValues = parameterValues,
+            LatestExecutionId = await ResolveExecutionIdAsync(query.Id, executionId),
+            TableConfigJson = JsonSerializer.Serialize(_tableConfigBuilder.Build(result.Columns, result.Rows), TableConfigJsonOptions)
         };
 
         ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
@@ -146,10 +164,18 @@ public class VisualizationsController : Controller
             result = await _queryRunner.RunAsync(query.DataSourceId, applyResult.Sql);
         }
         model.Columns = result.Columns;
+        model.LatestExecutionId = await GetLatestExecutionIdAsync(query.Id);
         model.Result = string.Equals(model.SubmitAction, "preview", StringComparison.OrdinalIgnoreCase) ? result : null;
         if (model.YColumns.Count == 0 && !string.IsNullOrWhiteSpace(model.YColumn))
         {
             model.YColumns.Add(model.YColumn);
+        }
+
+        TableVisualizationConfig? tableConfig = null;
+        if (model.Type == VisualizationType.Table)
+        {
+            tableConfig = BuildTableConfig(model, result);
+            model.TableConfigJson = JsonSerializer.Serialize(tableConfig, TableConfigJsonOptions);
         }
 
         ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
@@ -173,29 +199,31 @@ public class VisualizationsController : Controller
             return View(model);
         }
 
-        var config = new VisualizationConfig
-        {
-            XColumn = model.XColumn,
-            YColumn = model.YColumn,
-            YColumns = model.YColumns,
-            UseHorizontalBars = model.UseHorizontalBars || model.Type == VisualizationType.HorizontalBar,
-            UseStackedBars = model.UseStackedBars,
-            UseFloatingBars = model.UseFloatingBars || model.Type == VisualizationType.FloatingBar,
-            RangeStartColumn = model.RangeStartColumn,
-            RangeEndColumn = model.RangeEndColumn,
-            LabelColumn = model.LabelColumn,
-            ValueColumn = model.ValueColumn,
-            GroupByColumn = model.GroupByColumn,
-            ShowLegend = model.ShowLegend,
-            LineInterpolationMode = model.LineInterpolationMode
-        };
+        var configJson = model.Type == VisualizationType.Table
+            ? JsonSerializer.Serialize(tableConfig ?? BuildTableConfig(model, result), TableConfigJsonOptions)
+            : JsonSerializer.Serialize(new VisualizationConfig
+            {
+                XColumn = model.XColumn,
+                YColumn = model.YColumn,
+                YColumns = model.YColumns,
+                UseHorizontalBars = model.UseHorizontalBars || model.Type == VisualizationType.HorizontalBar,
+                UseStackedBars = model.UseStackedBars,
+                UseFloatingBars = model.UseFloatingBars || model.Type == VisualizationType.FloatingBar,
+                RangeStartColumn = model.RangeStartColumn,
+                RangeEndColumn = model.RangeEndColumn,
+                LabelColumn = model.LabelColumn,
+                ValueColumn = model.ValueColumn,
+                GroupByColumn = model.GroupByColumn,
+                ShowLegend = model.ShowLegend,
+                LineInterpolationMode = model.LineInterpolationMode
+            });
 
         var visualization = new Visualization
         {
             QueryId = model.QueryId,
             Name = model.Name.Trim(),
             Type = model.Type,
-            ConfigJson = JsonSerializer.Serialize(config),
+            ConfigJson = configJson,
             IsAutoRefreshEnabled = model.IsAutoRefreshEnabled,
             AutoRefreshIntervalSeconds = model.IsAutoRefreshEnabled ? model.AutoRefreshIntervalSeconds : null,
             CreatedAt = DateTimeOffset.UtcNow,
@@ -253,6 +281,12 @@ public class VisualizationsController : Controller
             result = await _queryRunner.RunAsync(visualization.Query.DataSourceId, applyResult.Sql);
         }
         var config = JsonSerializer.Deserialize<VisualizationConfig>(visualization.ConfigJson) ?? new VisualizationConfig();
+        TableVisualizationConfig? tableConfig = null;
+        if (visualization.Type == VisualizationType.Table)
+        {
+            tableConfig = TryDeserializeTableConfig(visualization.ConfigJson);
+            tableConfig = _tableConfigBuilder.Build(result.Columns, result.Rows, tableConfig);
+        }
         var model = new VisualizationEditViewModel
         {
             Id = visualization.Id,
@@ -277,7 +311,9 @@ public class VisualizationsController : Controller
             AutoRefreshIntervalSeconds = visualization.AutoRefreshIntervalSeconds,
             ParameterDefinitions = definitions,
             ParameterValues = parameterValues,
-            CanDelete = await CanDeleteVisualizationAsync(visualization.Query)
+            CanDelete = await CanDeleteVisualizationAsync(visualization.Query),
+            LatestExecutionId = await GetLatestExecutionIdAsync(visualization.QueryId),
+            TableConfigJson = tableConfig != null ? JsonSerializer.Serialize(tableConfig, TableConfigJsonOptions) : null
         };
 
         ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
@@ -337,12 +373,20 @@ public class VisualizationsController : Controller
             result = await _queryRunner.RunAsync(query.DataSourceId, applyResult.Sql);
         }
         model.Columns = result.Columns;
+        model.LatestExecutionId = await GetLatestExecutionIdAsync(query.Id);
         model.Result = string.Equals(model.SubmitAction, "preview", StringComparison.OrdinalIgnoreCase) ? result : null;
         if (model.YColumns.Count == 0 && !string.IsNullOrWhiteSpace(model.YColumn))
         {
             model.YColumns.Add(model.YColumn);
         }
         model.CanDelete = await CanDeleteVisualizationAsync(query);
+
+        TableVisualizationConfig? tableConfig = null;
+        if (model.Type == VisualizationType.Table)
+        {
+            tableConfig = BuildTableConfig(model, result);
+            model.TableConfigJson = JsonSerializer.Serialize(tableConfig, TableConfigJsonOptions);
+        }
 
         ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
         ViewData["Title"] = "Edit Visualization";
@@ -366,26 +410,28 @@ public class VisualizationsController : Controller
             return View("Create", model);
         }
 
-        var config = new VisualizationConfig
-        {
-            XColumn = model.XColumn,
-            YColumn = model.YColumn,
-            YColumns = model.YColumns,
-            UseHorizontalBars = model.UseHorizontalBars || model.Type == VisualizationType.HorizontalBar,
-            UseStackedBars = model.UseStackedBars,
-            UseFloatingBars = model.UseFloatingBars || model.Type == VisualizationType.FloatingBar,
-            RangeStartColumn = model.RangeStartColumn,
-            RangeEndColumn = model.RangeEndColumn,
-            LabelColumn = model.LabelColumn,
-            ValueColumn = model.ValueColumn,
-            GroupByColumn = model.GroupByColumn,
-            ShowLegend = model.ShowLegend,
-            LineInterpolationMode = model.LineInterpolationMode
-        };
+        var configJson = model.Type == VisualizationType.Table
+            ? JsonSerializer.Serialize(tableConfig ?? BuildTableConfig(model, result), TableConfigJsonOptions)
+            : JsonSerializer.Serialize(new VisualizationConfig
+            {
+                XColumn = model.XColumn,
+                YColumn = model.YColumn,
+                YColumns = model.YColumns,
+                UseHorizontalBars = model.UseHorizontalBars || model.Type == VisualizationType.HorizontalBar,
+                UseStackedBars = model.UseStackedBars,
+                UseFloatingBars = model.UseFloatingBars || model.Type == VisualizationType.FloatingBar,
+                RangeStartColumn = model.RangeStartColumn,
+                RangeEndColumn = model.RangeEndColumn,
+                LabelColumn = model.LabelColumn,
+                ValueColumn = model.ValueColumn,
+                GroupByColumn = model.GroupByColumn,
+                ShowLegend = model.ShowLegend,
+                LineInterpolationMode = model.LineInterpolationMode
+            });
 
         visualization.Name = model.Name.Trim();
         visualization.Type = model.Type;
-        visualization.ConfigJson = JsonSerializer.Serialize(config);
+        visualization.ConfigJson = configJson;
         visualization.IsAutoRefreshEnabled = model.IsAutoRefreshEnabled;
         visualization.AutoRefreshIntervalSeconds = model.IsAutoRefreshEnabled ? model.AutoRefreshIntervalSeconds : null;
         visualization.UpdatedAt = DateTimeOffset.UtcNow;
@@ -434,6 +480,12 @@ public class VisualizationsController : Controller
             result = await _queryRunner.RunAsync(visualization.Query.DataSourceId, applyResult.Sql);
         }
         var config = JsonSerializer.Deserialize<VisualizationConfig>(visualization.ConfigJson) ?? new VisualizationConfig();
+        TableVisualizationConfig? tableConfig = null;
+        if (visualization.Type == VisualizationType.Table)
+        {
+            tableConfig = TryDeserializeTableConfig(visualization.ConfigJson);
+            tableConfig = _tableConfigBuilder.Build(result.Columns, result.Rows, tableConfig);
+        }
 
         var dashboards = await _dbContext.Dashboards
             .AsNoTracking()
@@ -450,6 +502,7 @@ public class VisualizationsController : Controller
             Visualization = visualization,
             Result = result,
             Config = config,
+            TableConfig = tableConfig,
             QueryName = visualization.Query.Name,
             Dashboards = dashboards
         };
@@ -552,6 +605,123 @@ public class VisualizationsController : Controller
         });
     }
 
+    [HttpGet("/visualizations/{id}/results")]
+    public async Task<IActionResult> ResultsPage(int id, int page = 1, int pageSize = 25)
+    {
+        var visualization = await _dbContext.Visualizations
+            .Include(v => v.Query)
+            .FirstOrDefaultAsync(v => v.Id == id);
+        if (visualization == null || visualization.Query == null)
+        {
+            return NotFound();
+        }
+
+        var normalizedPage = page < 1 ? 1 : page;
+        var normalizedSize = AllowedPageSizes.Contains(pageSize) ? pageSize : 25;
+
+        var definitions = await _dbContext.QueryParameterDefinitions
+            .AsNoTracking()
+            .Where(d => d.QueryId == visualization.QueryId)
+            .ToListAsync();
+        var parameterValues = await GetLatestParameterValuesAsync(visualization.QueryId);
+
+        var applyResult = await _parameterService.ApplyAsync(new QueryParameterApplyRequest
+        {
+            Sql = visualization.Query.SqlText,
+            Definitions = definitions,
+            Values = parameterValues,
+            AllowText = true
+        });
+
+        if (!applyResult.Success)
+        {
+            return BadRequest(new ParameterValidationErrorResponse
+            {
+                Message = "One or more parameter values are missing or invalid.",
+                Errors = applyResult.Errors,
+                ErrorMessage = "Parameter validation failed."
+            });
+        }
+
+        var result = await _queryRunner.RunAsync(visualization.Query.DataSourceId, applyResult.Sql);
+        if (!result.Success)
+        {
+            return Ok(new
+            {
+                success = false,
+                errorMessage = result.ErrorMessage ?? "Failed to load results."
+            });
+        }
+
+        var start = (normalizedPage - 1) * normalizedSize;
+        var pageRows = result.Rows.Skip(start).Take(normalizedSize).ToList();
+        var hasNext = result.Rows.Count > start + pageRows.Count;
+
+        return Ok(new
+        {
+            success = true,
+            visualizationId = visualization.Id,
+            queryId = visualization.QueryId,
+            page = normalizedPage,
+            pageSize = normalizedSize,
+            hasNext,
+            columns = result.Columns.Select(name => new { name }),
+            rows = pageRows.Select(row =>
+            {
+                var map = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+                for (var i = 0; i < result.Columns.Count; i++)
+                {
+                    map[result.Columns[i]] = i < row.Count ? row[i] : null;
+                }
+                return map;
+            })
+        });
+    }
+
+    [HttpGet("/visualizations/execution-preview/{executionId}")]
+    public async Task<IActionResult> ExecutionPreview(int executionId)
+    {
+        if (executionId <= 0)
+        {
+            return BadRequest();
+        }
+
+        var execution = await _dbContext.QueryExecutions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == executionId);
+        if (execution == null)
+        {
+            return NotFound();
+        }
+
+        if (!await _permissionService.CanViewQueryAsync(User, execution.QueryId))
+        {
+            return Forbid();
+        }
+
+        if (string.IsNullOrWhiteSpace(execution.ResultJson))
+        {
+            return Ok(new { success = false, errorMessage = "No stored results available." });
+        }
+
+        QueryExecutionResult? payload;
+        try
+        {
+            payload = JsonSerializer.Deserialize<QueryExecutionResult>(execution.ResultJson);
+        }
+        catch (JsonException)
+        {
+            return Ok(new { success = false, errorMessage = "Stored results could not be read." });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            columns = payload?.Columns ?? Array.Empty<string>(),
+            rows = payload?.Rows ?? Array.Empty<IReadOnlyList<string?>>()
+        });
+    }
+
     private async Task<bool> CanDeleteVisualizationAsync(Query query)
     {
         if (User.IsInRole("Admin"))
@@ -576,6 +746,55 @@ public class VisualizationsController : Controller
         }
 
         return await _permissionService.HasQueryEditAccessAsync(userId, query.Id);
+    }
+
+    private async Task<int?> ResolveExecutionIdAsync(int queryId, int? executionId)
+    {
+        if (executionId.HasValue)
+        {
+            var matchesQuery = await _dbContext.QueryExecutions
+                .AsNoTracking()
+                .AnyAsync(e => e.Id == executionId.Value && e.QueryId == queryId);
+            if (matchesQuery)
+            {
+                return executionId.Value;
+            }
+        }
+
+        return await GetLatestExecutionIdAsync(queryId);
+    }
+
+    private async Task<int?> GetLatestExecutionIdAsync(int queryId)
+    {
+        return await _dbContext.QueryExecutions
+            .AsNoTracking()
+            .Where(e => e.QueryId == queryId && e.Status == QueryExecutionStatus.Success && e.ResultJson != null)
+            .OrderByDescending(e => e.StartedAt)
+            .Select(e => (int?)e.Id)
+            .FirstOrDefaultAsync();
+    }
+
+    private TableVisualizationConfig BuildTableConfig(VisualizationEditViewModel model, QueryResultViewModel result)
+    {
+        var existing = TryDeserializeTableConfig(model.TableConfigJson);
+        return _tableConfigBuilder.Build(result.Columns, result.Rows, existing);
+    }
+
+    private static TableVisualizationConfig? TryDeserializeTableConfig(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<TableVisualizationConfig>(json, TableConfigJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     [HttpPost("visualizations/{id}/delete")]

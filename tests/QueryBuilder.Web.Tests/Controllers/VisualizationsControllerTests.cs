@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
@@ -47,7 +48,7 @@ public class VisualizationsControllerTests
         var visualizationService = new Mock<IVisualizationService>();
         var userManager = UserManagerMockHelper.Create("editor-1");
         var permissionService = new PermissionService(dbContext, userManager.Object);
-        var controller = new VisualizationsController(dbContext, queryRunner, new NullLogger<VisualizationsController>(), parameterService, visualizationService.Object, permissionService, userManager.Object);
+        var controller = new VisualizationsController(dbContext, queryRunner, new NullLogger<VisualizationsController>(), parameterService, visualizationService.Object, permissionService, userManager.Object, new TableVisualizationConfigBuilder());
 
         var model = new VisualizationEditViewModel
         {
@@ -62,6 +63,60 @@ public class VisualizationsControllerTests
         result.Should().BeOfType<RedirectToActionResult>();
         dbContext.Visualizations.Should().HaveCount(1);
         dbContext.Visualizations.Single().QueryId.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Create_Post_Save_Persists_Table_Config_Json()
+    {
+        using var dbContext = TestDbContextFactory.CreateDbContext();
+        var dataProtectionProvider = DataProtectionProvider.Create("QueryBuilder.Tests");
+        var protector = dataProtectionProvider.CreateProtector("QueryBuilder.DataSources.ConnectionString");
+
+        dbContext.DataSources.Add(new DataSource
+        {
+            Id = 1,
+            Name = "Primary",
+            ConnectionStringEncrypted = protector.Protect("Server=localhost\\INVALID;Database=master;Trusted_Connection=True;Connection Timeout=1;"),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.Queries.Add(new Query
+        {
+            Id = 1,
+            Name = "Query",
+            DataSourceId = 1,
+            SqlText = "select 1",
+            CreatedById = "editor-1",
+            UpdatedById = "editor-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
+        var parameterService = new FakeQueryParameterService();
+        var visualizationService = new Mock<IVisualizationService>();
+        var userManager = UserManagerMockHelper.Create("editor-1");
+        var permissionService = new PermissionService(dbContext, userManager.Object);
+        var controller = new VisualizationsController(dbContext, queryRunner, new NullLogger<VisualizationsController>(), parameterService, visualizationService.Object, permissionService, userManager.Object, new TableVisualizationConfigBuilder());
+
+        var model = new VisualizationEditViewModel
+        {
+            QueryId = 1,
+            Name = "Table Viz",
+            Type = VisualizationType.Table,
+            TableConfigJson = "{}",
+            SubmitAction = "save"
+        };
+
+        var result = await controller.Create(model);
+
+        result.Should().BeOfType<RedirectToActionResult>();
+        var visualization = dbContext.Visualizations.Single();
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var config = JsonSerializer.Deserialize<TableVisualizationConfig>(visualization.ConfigJson, options);
+        config.Should().NotBeNull();
+        config!.Grid.PageSize.Should().Be(25);
     }
 
     [Fact]
@@ -105,7 +160,7 @@ public class VisualizationsControllerTests
         var visualizationService = new Mock<IVisualizationService>();
         var userManager = UserManagerMockHelper.Create("editor-1");
         var permissionService = new PermissionService(dbContext, userManager.Object);
-        var controller = new VisualizationsController(dbContext, queryRunner, new NullLogger<VisualizationsController>(), parameterService, visualizationService.Object, permissionService, userManager.Object);
+        var controller = new VisualizationsController(dbContext, queryRunner, new NullLogger<VisualizationsController>(), parameterService, visualizationService.Object, permissionService, userManager.Object, new TableVisualizationConfigBuilder());
 
         var result = await controller.Data(1);
 

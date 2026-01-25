@@ -25,6 +25,12 @@ public class DashboardsController : Controller
     private readonly PublicShareService _publicShareService;
     private readonly ILogger<DashboardsController> _logger;
     private readonly IQueryParameterService _parameterService;
+    private readonly TableVisualizationConfigBuilder _tableConfigBuilder;
+    private static readonly JsonSerializerOptions TableConfigJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
 
     public DashboardsController(
         ApplicationDbContext dbContext,
@@ -33,7 +39,8 @@ public class DashboardsController : Controller
         UserManager<IdentityUser> userManager,
         PublicShareService publicShareService,
         ILogger<DashboardsController> logger,
-        IQueryParameterService parameterService)
+        IQueryParameterService parameterService,
+        TableVisualizationConfigBuilder tableConfigBuilder)
     {
         _dbContext = dbContext;
         _queryRunner = queryRunner;
@@ -42,6 +49,7 @@ public class DashboardsController : Controller
         _publicShareService = publicShareService;
         _logger = logger;
         _parameterService = parameterService;
+        _tableConfigBuilder = tableConfigBuilder;
     }
 
     public async Task<IActionResult> Index()
@@ -482,12 +490,19 @@ public class DashboardsController : Controller
                 result = await _queryRunner.RunAsync(widget.Visualization.Query.DataSourceId, applyResult.Sql);
             }
             var config = JsonSerializer.Deserialize<VisualizationConfig>(widget.Visualization.ConfigJson) ?? new VisualizationConfig();
+            TableVisualizationConfig? tableConfig = null;
+            if (widget.Visualization.Type == VisualizationType.Table)
+            {
+                tableConfig = TryDeserializeTableConfig(widget.Visualization.ConfigJson);
+                tableConfig = _tableConfigBuilder.Build(result.Columns, result.Rows, tableConfig);
+            }
 
             viewWidgets.Add(new DashboardWidgetViewModel
             {
                 Widget = widget,
                 Visualization = widget.Visualization,
                 Config = config,
+                TableConfig = tableConfig,
                 Result = result
             });
         }
@@ -1106,6 +1121,23 @@ public class DashboardsController : Controller
         }
 
         return options;
+    }
+
+    private static TableVisualizationConfig? TryDeserializeTableConfig(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<TableVisualizationConfig>(json, TableConfigJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private static DashboardParameterStateViewModel BuildDashboardParameterState(

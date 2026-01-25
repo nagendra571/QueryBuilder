@@ -14,7 +14,16 @@
     return seconds * 1000;
   };
 
-  const renderTable = (container, columns, rows) => {
+  const renderTable = (container, columns, rows, config, allowUnsafeHtml) => {
+    if (window.queryBuilderTable?.render) {
+      window.queryBuilderTable.render(container, {
+        columns,
+        rows,
+        config: config || {},
+        allowUnsafeHtml: allowUnsafeHtml === true
+      });
+      return;
+    }
     const table = document.createElement("table");
     table.className = "table table-sm table-hover mb-0";
     const thead = document.createElement("thead");
@@ -155,7 +164,7 @@
       clearError(container);
       const body = container.querySelector(`[data-widget-body="${widget.widgetId}"]`) || container;
       if (widget.visualizationType === "Table") {
-        renderTable(body, payload.columns || [], payload.rows || []);
+        renderTable(body, payload.columns || [], payload.rows || [], widget.tableConfig, widget.allowUnsafeHtml);
       } else if (window.queryBuilderViz) {
         const canvasId = widget.canvasId || "vizChart";
         window.queryBuilderViz.details = window.queryBuilderViz.details || {};
@@ -227,7 +236,9 @@
       endpoint: config.endpoint,
       mode: "visualization",
       canvasId: "vizChart",
-      chartConfig: window.queryBuilderViz?.details
+      chartConfig: window.queryBuilderViz?.details,
+      tableConfig: window.queryBuilderTable?.details?.config,
+      allowUnsafeHtml: window.queryBuilderTable?.details?.allowUnsafeHtml === true
     });
   } else {
     config.widgets.forEach((widget) => {
@@ -240,7 +251,9 @@
         endpoint: widget.endpoint,
         mode: config.mode,
         canvasId: `viz-${widget.widgetId}`,
-        chartConfig: window.queryBuilderViz?.multi?.find(item => item.canvasId === `viz-${widget.widgetId}`)
+        chartConfig: window.queryBuilderViz?.multi?.find(item => item.canvasId === `viz-${widget.widgetId}`),
+        tableConfig: widget.tableConfig,
+        allowUnsafeHtml: widget.allowUnsafeHtml === true
       });
     });
   }

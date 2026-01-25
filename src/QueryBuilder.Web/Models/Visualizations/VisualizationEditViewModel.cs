@@ -62,6 +62,8 @@ public class VisualizationEditViewModel
     public int? AutoRefreshIntervalSeconds { get; set; }
 
     public IReadOnlyList<string> Columns { get; set; } = Array.Empty<string>();
+    public int? LatestExecutionId { get; set; }
+    public string? TableConfigJson { get; set; }
     public string? SubmitAction { get; set; }
     public QueryResultViewModel? Result { get; set; }
     public IReadOnlyList<QueryParameterDefinitionViewModel> ParameterDefinitions { get; set; } = Array.Empty<QueryParameterDefinitionViewModel>();

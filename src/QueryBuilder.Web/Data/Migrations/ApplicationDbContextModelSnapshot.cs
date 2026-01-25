@@ -578,6 +578,9 @@ namespace QueryBuilder.Web.Data.Migrations
                     b.Property<int>("QueryId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ResultJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("RowCount")
                         .HasColumnType("int");
 

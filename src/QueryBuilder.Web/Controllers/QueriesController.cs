@@ -15,12 +15,16 @@ namespace QueryBuilder.Web.Controllers;
 [Authorize]
 public class QueriesController : Controller
 {
+    private const int ExecutionPreviewRows = 500;
+    private static readonly int[] AllowedPageSizes = { 25, 50, 100, 250, 500 };
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly QueryRunner _queryRunner;
     private readonly PermissionService _permissionService;
     private readonly SchemaBrowserService _schemaBrowserService;
     private readonly IQueryParameterService _parameterService;
+    private readonly QueryExecutionPreviewService _executionPreviewService;
+    private readonly ILogger<QueriesController> _logger;
 
     public QueriesController(
         ApplicationDbContext dbContext,
@@ -28,7 +32,9 @@ public class QueriesController : Controller
         QueryRunner queryRunner,
         PermissionService permissionService,
         SchemaBrowserService schemaBrowserService,
-        IQueryParameterService parameterService)
+        IQueryParameterService parameterService,
+        QueryExecutionPreviewService executionPreviewService,
+        ILogger<QueriesController> logger)
     {
         _dbContext = dbContext;
         _userManager = userManager;
@@ -36,6 +42,8 @@ public class QueriesController : Controller
         _permissionService = permissionService;
         _schemaBrowserService = schemaBrowserService;
         _parameterService = parameterService;
+        _executionPreviewService = executionPreviewService;
+        _logger = logger;
     }
 
     public async Task<IActionResult> Index()
@@ -390,6 +398,79 @@ public class QueriesController : Controller
             .ToList();
 
         return Ok(new { success = true, options });
+    }
+
+    [HttpGet("queries/{queryId}/executions/latest")]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> LatestExecutionPreview(int queryId, int? executionId, int maxRows = 50, bool includeResult = true)
+    {
+        if (queryId <= 0)
+        {
+            return BadRequest();
+        }
+
+        if (!await _permissionService.CanViewQueryAsync(User, queryId))
+        {
+            return Forbid();
+        }
+
+        if (!includeResult)
+        {
+            return Ok(new { success = false, queryId, errorMessage = "Result data was not requested." });
+        }
+
+        _logger.LogInformation("Loading execution preview for query {QueryId} (execution {ExecutionId})", queryId, executionId);
+        var preview = await _executionPreviewService.GetLatestAsync(queryId, executionId, maxRows);
+        return Ok(preview);
+    }
+
+    [HttpGet("queries/{queryId}/executions/{executionId}/results")]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> ExecutionResultsPage(int queryId, int executionId, int page = 1, int pageSize = 25)
+    {
+        if (queryId <= 0 || executionId <= 0)
+        {
+            return BadRequest();
+        }
+
+        if (!await _permissionService.CanViewQueryAsync(User, queryId))
+        {
+            return Forbid();
+        }
+
+        var normalizedPage = page < 1 ? 1 : page;
+        var normalizedSize = AllowedPageSizes.Contains(pageSize) ? pageSize : 25;
+
+        _logger.LogInformation(
+            "Loading execution page {Page} for query {QueryId} (execution {ExecutionId}, size {PageSize})",
+            normalizedPage,
+            queryId,
+            executionId,
+            normalizedSize);
+
+        var preview = await _executionPreviewService.GetPageAsync(queryId, executionId, normalizedPage, normalizedSize);
+        return Ok(preview);
+    }
+
+    [HttpGet("queries/{queryId}/executions/latest/results")]
+    [Authorize(Roles = "Admin,Editor")]
+    public async Task<IActionResult> LatestExecutionResultsPage(int queryId, int page = 1, int pageSize = 25)
+    {
+        if (queryId <= 0)
+        {
+            return BadRequest();
+        }
+
+        if (!await _permissionService.CanViewQueryAsync(User, queryId))
+        {
+            return Forbid();
+        }
+
+        var normalizedPage = page < 1 ? 1 : page;
+        var normalizedSize = AllowedPageSizes.Contains(pageSize) ? pageSize : 25;
+
+        var preview = await _executionPreviewService.GetPageAsync(queryId, null, normalizedPage, normalizedSize);
+        return Ok(preview);
     }
 
     [HttpPost]
@@ -926,13 +1007,27 @@ public class QueriesController : Controller
             DurationMs = result.DurationMs,
             RowCount = result.RowCount,
             ErrorMessage = result.Success ? null : result.ErrorMessage,
-            ParametersJson = applyResult.AppliedValues.Count > 0 ? JsonSerializer.Serialize(applyResult.AppliedValues) : null
+            ParametersJson = applyResult.AppliedValues.Count > 0 ? JsonSerializer.Serialize(applyResult.AppliedValues) : null,
+            ResultJson = result.Success
+                ? JsonSerializer.Serialize(new QueryExecutionResult
+                {
+                    Columns = result.Columns,
+                    Rows = result.Rows.Take(ExecutionPreviewRows).ToList()
+                })
+                : null
         };
 
         if (queryId.HasValue)
         {
             _dbContext.QueryExecutions.Add(execution);
             await _dbContext.SaveChangesAsync();
+            result.ExecutionId = execution.Id;
+            _logger.LogInformation(
+                "Saved query execution {ExecutionId} for query {QueryId} with {ColumnCount} columns and {RowCount} rows",
+                execution.Id,
+                queryId.Value,
+                result.Columns.Count,
+                result.Rows.Count);
         }
 
         return result;

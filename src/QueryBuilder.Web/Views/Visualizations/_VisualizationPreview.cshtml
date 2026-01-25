@@ -6,44 +6,7 @@
     var columnsJson = JsonSerializer.Serialize(Model.Result?.Columns ?? Array.Empty<string>());
 }
 
-@if (Model.Type == QueryBuilder.Domain.Entities.VisualizationType.Table)
-{
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table table-sm mb-0">
-                <thead>
-                <tr>
-                    @foreach (var column in Model.Result?.Columns ?? Array.Empty<string>())
-                    {
-                        <th>@column</th>
-                    }
-                </tr>
-                </thead>
-                <tbody>
-                @if (Model.Result == null || Model.Result.Rows.Count == 0)
-                {
-                    <tr>
-                        <td colspan="@(Model.Result?.Columns.Count ?? 1)" class="text-muted">No rows returned.</td>
-                    </tr>
-                }
-                else
-                {
-                    foreach (var row in Model.Result.Rows)
-                    {
-                        <tr>
-                            @foreach (var cell in row)
-                            {
-                                <td>@cell</td>
-                            }
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>
-        </div>
-    </div>
-}
-else
+@if (Model.Type != QueryBuilder.Domain.Entities.VisualizationType.Table)
 {
     <div class="card">
         <div class="card-body">

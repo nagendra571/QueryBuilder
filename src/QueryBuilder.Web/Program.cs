@@ -21,6 +21,8 @@ builder.Services.AddScoped<QueryRunner>();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<SchemaBrowserService>();
 builder.Services.AddScoped<PublicShareService>();
+builder.Services.AddScoped<TableVisualizationConfigBuilder>();
+builder.Services.AddScoped<QueryExecutionPreviewService>();
 builder.Services.AddScoped<IQueryParameterService, QueryParameterService>();
 builder.Services.AddScoped<IVisualizationService, VisualizationService>();
 

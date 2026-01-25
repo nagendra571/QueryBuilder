@@ -16,6 +16,7 @@ public class QueryExecution
     public int? RowCount { get; set; }
     public string? ErrorMessage { get; set; }
     public string? ParametersJson { get; set; }
+    public string? ResultJson { get; set; }
 
     public Query? Query { get; set; }
 }

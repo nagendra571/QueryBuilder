@@ -9,4 +9,5 @@ public class QueryResultViewModel
     public int DurationMs { get; set; }
     public IReadOnlyList<string> Columns { get; set; } = Array.Empty<string>();
     public IReadOnlyList<IReadOnlyList<string?>> Rows { get; set; } = Array.Empty<IReadOnlyList<string?>>();
+    public int? ExecutionId { get; set; }
 }

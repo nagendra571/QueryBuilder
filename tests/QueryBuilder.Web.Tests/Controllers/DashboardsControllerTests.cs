@@ -31,7 +31,7 @@ public class DashboardsControllerTests
         var publicShareService = new PublicShareService(dbContext);
 
         var parameterService = new FakeQueryParameterService();
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance, parameterService)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance, parameterService, new TableVisualizationConfigBuilder())
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("viewer-1", "Viewer"))
@@ -85,7 +85,7 @@ public class DashboardsControllerTests
         var publicShareService = new PublicShareService(dbContext);
 
         var parameterService = new FakeQueryParameterService();
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance, parameterService)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance, parameterService, new TableVisualizationConfigBuilder())
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("editor-1", "Editor"))
@@ -145,7 +145,7 @@ public class DashboardsControllerTests
         var publicShareService = new PublicShareService(dbContext);
 
         var parameterService = new FakeQueryParameterService();
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance, parameterService)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance, parameterService, new TableVisualizationConfigBuilder())
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("viewer-1", "Viewer"))
@@ -220,7 +220,7 @@ public class DashboardsControllerTests
         var publicShareService = new PublicShareService(dbContext);
 
         var parameterService = new FakeQueryParameterService();
-        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance, parameterService)
+        var controller = new DashboardsController(dbContext, queryRunner, permissionService, userManager.Object, publicShareService, NullLogger<DashboardsController>.Instance, parameterService, new TableVisualizationConfigBuilder())
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser(userId, "Viewer"))
