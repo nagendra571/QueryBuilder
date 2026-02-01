@@ -178,6 +178,19 @@
             render: counterRender
           });
         }
+      } else if (widget.visualizationType === "Funnel") {
+        const hostId = widget.canvasId || "vizFunnel";
+        const baseConfig = widget.funnelConfig || window.queryBuilderViz?.details || {};
+        const render = window.queryBuilderViz?.renderFunnel;
+        const funnelRender = payload.funnel || baseConfig.render || null;
+        const funnelConfig = baseConfig.config || baseConfig;
+        if (typeof render === "function") {
+          render(hostId, {
+            type: widget.visualizationType,
+            config: funnelConfig,
+            render: funnelRender
+          });
+        }
       } else if (window.queryBuilderViz) {
         const canvasId = widget.canvasId || "vizChart";
         const baseConfig = widget.chartConfig || window.queryBuilderViz.details || {};
@@ -249,9 +262,10 @@
       autoRefreshInterval: config.autoRefreshInterval,
       endpoint: config.endpoint,
       mode: "visualization",
-      canvasId: vizType === "Counter" ? "vizCounter" : "vizChart",
+      canvasId: vizType === "Counter" ? "vizCounter" : vizType === "Funnel" ? "vizFunnel" : "vizChart",
       chartConfig: window.queryBuilderViz?.details,
       counterConfig: window.queryBuilderViz?.details,
+      funnelConfig: window.queryBuilderViz?.details,
       tableConfig: window.queryBuilderTable?.details?.config,
       allowUnsafeHtml: window.queryBuilderTable?.details?.allowUnsafeHtml === true
     });

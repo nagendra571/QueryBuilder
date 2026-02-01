@@ -40,6 +40,7 @@
                 <input type="hidden" asp-for="TableConfigJson" />
                 <input type="hidden" asp-for="ChartConfigJson" />
                 <input type="hidden" asp-for="CounterConfigJson" />
+                <input type="hidden" asp-for="FunnelConfigJson" />
 
                 <partial name="_VisualizationParameters" model="Model" />
 
@@ -129,6 +130,9 @@
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizCounterFormat" type="button" role="tab" data-viz-tab="counter">Format</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizFunnel" type="button" role="tab" data-viz-tab="funnel">Funnel</button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizTableColumns" type="button" role="tab" data-viz-tab="table">Columns</button>
@@ -419,6 +423,52 @@
                             </select>
                         </div>
                     </div>
+                    <div class="tab-pane fade" id="vizFunnel" role="tabpanel">
+                        <div class="mb-3">
+                            <label class="form-label" for="funnelStepColumn">Step Column Name</label>
+                            <select class="form-select" id="funnelStepColumn">
+                                <option value="">Choose column...</option>
+                                @foreach (var column in columns)
+                                {
+                                    <option value="@column">@column</option>
+                                }
+                            </select>
+                            <div class="text-danger small d-none" id="funnelStepColumnError">Step column is required.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="funnelStepDisplayName">Step Column Display Name</label>
+                            <input class="form-control" id="funnelStepDisplayName" type="text" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="funnelValueColumn">Funnel Value Column Name</label>
+                            <select class="form-select" id="funnelValueColumn">
+                                <option value="">Choose column...</option>
+                                @foreach (var column in columns)
+                                {
+                                    <option value="@column">@column</option>
+                                }
+                            </select>
+                            <div class="text-danger small d-none" id="funnelValueColumnError">Value column is required.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="funnelValueDisplayName">Funnel Value Column Display Name</label>
+                            <input class="form-control" id="funnelValueDisplayName" type="text" />
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="funnelAutoSort">
+                            <label class="form-check-label" for="funnelAutoSort">Auto Sort Record By Value</label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="funnelSortBy">Funnel Value Columns Name</label>
+                            <select class="form-select" id="funnelSortBy">
+                                <option value="">Choose column...</option>
+                                @foreach (var column in columns)
+                                {
+                                    <option value="@column">@column</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
                     <div class="tab-pane fade" id="vizTableColumns" role="tabpanel">
                         <div class="mb-3">
                             <input class="form-control" id="tableColumnSearch" placeholder="Search columns..." />
@@ -523,6 +573,15 @@
                     <div id="counterPreviewWarnings" class="text-warning small mb-2 d-none"></div>
                     <div id="counterPreviewDisplay" class="counter-visualization"></div>
                 </div>
+                <div id="funnelVizPreview" class="d-none">
+                    <div class="viz-preview-empty d-none" id="funnelPreviewEmpty">
+                        <div class="text-muted">Run the query to see your funnel here.</div>
+                    </div>
+                    <div id="funnelPreviewLoading" class="text-muted small mb-2 d-none">Loading preview...</div>
+                    <div id="funnelPreviewErrors" class="text-danger small mb-2 d-none"></div>
+                    <div id="funnelPreviewWarnings" class="text-warning small mb-2 d-none"></div>
+                    <div id="funnelPreviewDisplay" class="funnel-visualization"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -559,6 +618,7 @@
     <script src="~/js/visualizations.js" asp-append-version="true"></script>
     <script src="~/js/chart-visualization-editor.js" asp-append-version="true"></script>
     <script src="~/js/counter-visualization-editor.js" asp-append-version="true"></script>
+    <script src="~/js/funnel-visualization-editor.js" asp-append-version="true"></script>
     <script src="~/js/table-visualization-editor.js" asp-append-version="true"></script>
     <script>
         const autoRefreshToggle = document.getElementById('autoRefreshToggle');
@@ -578,9 +638,11 @@
         const typeSelect = document.getElementById('Type');
         const chartPreview = document.getElementById('chartVizPreview');
         const counterPreview = document.getElementById('counterVizPreview');
+        const funnelPreview = document.getElementById('funnelVizPreview');
         const tablePreview = document.getElementById('tableVizPreview');
         const chartTabs = document.querySelectorAll('[data-viz-tab="chart"]');
         const counterTabs = document.querySelectorAll('[data-viz-tab="counter"]');
+        const funnelTabs = document.querySelectorAll('[data-viz-tab="funnel"]');
         const tableTabs = document.querySelectorAll('[data-viz-tab="table"]');
 
         const setActiveTab = (targetId) => {
@@ -600,19 +662,24 @@
             if (!typeSelect) return;
             const isTable = typeSelect.value === 'Table';
             const isCounter = typeSelect.value === 'Counter';
-            chartTabs.forEach((tab) => tab.classList.toggle('d-none', isTable || isCounter));
+            const isFunnel = typeSelect.value === 'Funnel';
+            chartTabs.forEach((tab) => tab.classList.toggle('d-none', isTable || isCounter || isFunnel));
             counterTabs.forEach((tab) => tab.classList.toggle('d-none', !isCounter));
+            funnelTabs.forEach((tab) => tab.classList.toggle('d-none', !isFunnel));
             tableTabs.forEach((tab) => tab.classList.toggle('d-none', !isTable));
             if (chartPreview) {
-                chartPreview.classList.toggle('d-none', isTable || isCounter);
+                chartPreview.classList.toggle('d-none', isTable || isCounter || isFunnel);
             }
             if (counterPreview) {
                 counterPreview.classList.toggle('d-none', !isCounter);
             }
+            if (funnelPreview) {
+                funnelPreview.classList.toggle('d-none', !isFunnel);
+            }
             if (tablePreview) {
                 tablePreview.classList.toggle('d-none', !isTable);
             }
-            setActiveTab(isTable ? '#vizTableColumns' : isCounter ? '#vizCounterGeneral' : '#vizGeneral');
+            setActiveTab(isTable ? '#vizTableColumns' : isCounter ? '#vizCounterGeneral' : isFunnel ? '#vizFunnel' : '#vizGeneral');
         };
 
         typeSelect?.addEventListener('change', updateTabVisibility);

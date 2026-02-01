@@ -25,6 +25,7 @@ public class VisualizationsController : Controller
     private readonly TableVisualizationConfigBuilder _tableConfigBuilder;
     private readonly ChartVisualizationDataBuilder _chartDataBuilder;
     private readonly CounterVisualizationDataBuilder _counterDataBuilder;
+    private readonly FunnelVisualizationDataBuilder _funnelDataBuilder;
     private readonly QueryExecutionPreviewService _executionPreviewService;
     private static readonly HashSet<int> AllowedRefreshIntervals = new()
     {
@@ -45,6 +46,11 @@ public class VisualizationsController : Controller
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true
     };
+    private static readonly JsonSerializerOptions FunnelConfigJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
     private static readonly int[] AllowedPageSizes = { 25, 50, 100, 250, 500 };
 
     public VisualizationsController(
@@ -58,6 +64,7 @@ public class VisualizationsController : Controller
         TableVisualizationConfigBuilder tableConfigBuilder,
         ChartVisualizationDataBuilder chartDataBuilder,
         CounterVisualizationDataBuilder counterDataBuilder,
+        FunnelVisualizationDataBuilder funnelDataBuilder,
         QueryExecutionPreviewService executionPreviewService)
     {
         _dbContext = dbContext;
@@ -70,6 +77,7 @@ public class VisualizationsController : Controller
         _tableConfigBuilder = tableConfigBuilder;
         _chartDataBuilder = chartDataBuilder;
         _counterDataBuilder = counterDataBuilder;
+        _funnelDataBuilder = funnelDataBuilder;
         _executionPreviewService = executionPreviewService;
     }
 
@@ -133,10 +141,11 @@ public class VisualizationsController : Controller
             LatestExecutionId = await ResolveExecutionIdAsync(query.Id, executionId),
             TableConfigJson = JsonSerializer.Serialize(_tableConfigBuilder.Build(result.Columns, result.Rows), TableConfigJsonOptions),
             ChartConfigJson = JsonSerializer.Serialize(ChartVisualizationConfig.CreateDefault(), ChartConfigJsonOptions),
-            CounterConfigJson = JsonSerializer.Serialize(CounterVisualizationConfig.CreateDefault(), CounterConfigJsonOptions)
+            CounterConfigJson = JsonSerializer.Serialize(CounterVisualizationConfig.CreateDefault(), CounterConfigJsonOptions),
+            FunnelConfigJson = JsonSerializer.Serialize(FunnelVisualizationConfig.CreateDefault(), FunnelConfigJsonOptions)
         };
 
-        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter });
+        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter, VisualizationType.Funnel });
         return View(model);
     }
 
@@ -196,6 +205,7 @@ public class VisualizationsController : Controller
         TableVisualizationConfig? tableConfig = null;
         ChartVisualizationConfig? chartConfig = null;
         CounterVisualizationConfig? counterConfig = null;
+        FunnelVisualizationConfig? funnelConfig = null;
         if (model.Type == VisualizationType.Table)
         {
             tableConfig = BuildTableConfig(model, result);
@@ -206,13 +216,18 @@ public class VisualizationsController : Controller
             counterConfig = TryDeserializeCounterConfig(model.CounterConfigJson) ?? CounterVisualizationConfig.CreateDefault();
             model.CounterConfigJson = JsonSerializer.Serialize(counterConfig, CounterConfigJsonOptions);
         }
+        else if (model.Type == VisualizationType.Funnel)
+        {
+            funnelConfig = TryDeserializeFunnelConfig(model.FunnelConfigJson) ?? FunnelVisualizationConfig.CreateDefault();
+            model.FunnelConfigJson = JsonSerializer.Serialize(funnelConfig, FunnelConfigJsonOptions);
+        }
         else
         {
             chartConfig = TryDeserializeChartConfig(model.ChartConfigJson) ?? ChartVisualizationConfig.CreateDefault();
             model.ChartConfigJson = JsonSerializer.Serialize(chartConfig, ChartConfigJsonOptions);
         }
 
-        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter });
+        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter, VisualizationType.Funnel });
 
         if (string.Equals(model.SubmitAction, "preview", StringComparison.OrdinalIgnoreCase))
         {
@@ -237,7 +252,9 @@ public class VisualizationsController : Controller
             ? JsonSerializer.Serialize(tableConfig ?? BuildTableConfig(model, result), TableConfigJsonOptions)
             : model.Type == VisualizationType.Counter
                 ? JsonSerializer.Serialize(counterConfig ?? CounterVisualizationConfig.CreateDefault(), CounterConfigJsonOptions)
-                : JsonSerializer.Serialize(chartConfig ?? ChartVisualizationConfig.CreateDefault(), ChartConfigJsonOptions);
+                : model.Type == VisualizationType.Funnel
+                    ? JsonSerializer.Serialize(funnelConfig ?? FunnelVisualizationConfig.CreateDefault(), FunnelConfigJsonOptions)
+                    : JsonSerializer.Serialize(chartConfig ?? ChartVisualizationConfig.CreateDefault(), ChartConfigJsonOptions);
 
         var visualization = new Visualization
         {
@@ -303,6 +320,7 @@ public class VisualizationsController : Controller
         }
         var chartConfig = TryDeserializeChartConfig(visualization.ConfigJson) ?? ChartVisualizationConfig.CreateDefault();
         var counterConfig = TryDeserializeCounterConfig(visualization.ConfigJson) ?? CounterVisualizationConfig.CreateDefault();
+        var funnelConfig = TryDeserializeFunnelConfig(visualization.ConfigJson) ?? FunnelVisualizationConfig.CreateDefault();
         TableVisualizationConfig? tableConfig = null;
         if (visualization.Type == VisualizationType.Table)
         {
@@ -318,6 +336,8 @@ public class VisualizationsController : Controller
                 ? VisualizationType.Table
                 : visualization.Type == VisualizationType.Counter
                     ? VisualizationType.Counter
+                    : visualization.Type == VisualizationType.Funnel
+                        ? VisualizationType.Funnel
                     : VisualizationType.Chart,
             Columns = result.Columns,
             IsAutoRefreshEnabled = visualization.IsAutoRefreshEnabled,
@@ -328,10 +348,11 @@ public class VisualizationsController : Controller
             LatestExecutionId = await GetLatestExecutionIdAsync(visualization.QueryId),
             TableConfigJson = tableConfig != null ? JsonSerializer.Serialize(tableConfig, TableConfigJsonOptions) : null,
             ChartConfigJson = JsonSerializer.Serialize(chartConfig, ChartConfigJsonOptions),
-            CounterConfigJson = JsonSerializer.Serialize(counterConfig, CounterConfigJsonOptions)
+            CounterConfigJson = JsonSerializer.Serialize(counterConfig, CounterConfigJsonOptions),
+            FunnelConfigJson = JsonSerializer.Serialize(funnelConfig, FunnelConfigJsonOptions)
         };
 
-        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter });
+        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter, VisualizationType.Funnel });
         ViewData["Title"] = "Edit Visualization";
         return View("Create", model);
     }
@@ -399,6 +420,7 @@ public class VisualizationsController : Controller
         TableVisualizationConfig? tableConfig = null;
         ChartVisualizationConfig? chartConfig = null;
         CounterVisualizationConfig? counterConfig = null;
+        FunnelVisualizationConfig? funnelConfig = null;
         if (model.Type == VisualizationType.Table)
         {
             tableConfig = BuildTableConfig(model, result);
@@ -409,13 +431,18 @@ public class VisualizationsController : Controller
             counterConfig = TryDeserializeCounterConfig(model.CounterConfigJson) ?? CounterVisualizationConfig.CreateDefault();
             model.CounterConfigJson = JsonSerializer.Serialize(counterConfig, CounterConfigJsonOptions);
         }
+        else if (model.Type == VisualizationType.Funnel)
+        {
+            funnelConfig = TryDeserializeFunnelConfig(model.FunnelConfigJson) ?? FunnelVisualizationConfig.CreateDefault();
+            model.FunnelConfigJson = JsonSerializer.Serialize(funnelConfig, FunnelConfigJsonOptions);
+        }
         else
         {
             chartConfig = TryDeserializeChartConfig(model.ChartConfigJson) ?? ChartVisualizationConfig.CreateDefault();
             model.ChartConfigJson = JsonSerializer.Serialize(chartConfig, ChartConfigJsonOptions);
         }
 
-        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter });
+        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter, VisualizationType.Funnel });
         ViewData["Title"] = "Edit Visualization";
 
         if (string.Equals(model.SubmitAction, "preview", StringComparison.OrdinalIgnoreCase))
@@ -441,7 +468,9 @@ public class VisualizationsController : Controller
             ? JsonSerializer.Serialize(tableConfig ?? BuildTableConfig(model, result), TableConfigJsonOptions)
             : model.Type == VisualizationType.Counter
                 ? JsonSerializer.Serialize(counterConfig ?? CounterVisualizationConfig.CreateDefault(), CounterConfigJsonOptions)
-                : JsonSerializer.Serialize(chartConfig ?? ChartVisualizationConfig.CreateDefault(), ChartConfigJsonOptions);
+                : model.Type == VisualizationType.Funnel
+                    ? JsonSerializer.Serialize(funnelConfig ?? FunnelVisualizationConfig.CreateDefault(), FunnelConfigJsonOptions)
+                    : JsonSerializer.Serialize(chartConfig ?? ChartVisualizationConfig.CreateDefault(), ChartConfigJsonOptions);
 
         visualization.Name = model.Name.Trim();
         visualization.Type = model.Type;
@@ -495,6 +524,7 @@ public class VisualizationsController : Controller
         }
         var chartConfig = TryDeserializeChartConfig(visualization.ConfigJson) ?? ChartVisualizationConfig.CreateDefault();
         var counterConfig = TryDeserializeCounterConfig(visualization.ConfigJson) ?? CounterVisualizationConfig.CreateDefault();
+        var funnelConfig = TryDeserializeFunnelConfig(visualization.ConfigJson) ?? FunnelVisualizationConfig.CreateDefault();
         TableVisualizationConfig? tableConfig = null;
         if (visualization.Type == VisualizationType.Table)
         {
@@ -503,9 +533,14 @@ public class VisualizationsController : Controller
         }
         ChartVisualizationRenderModel? chartRender = null;
         CounterVisualizationRenderModel? counterRender = null;
+        FunnelVisualizationRenderModel? funnelRender = null;
         if (visualization.Type == VisualizationType.Counter)
         {
             counterRender = _counterDataBuilder.Build(counterConfig, result.Columns, result.Rows);
+        }
+        else if (visualization.Type == VisualizationType.Funnel)
+        {
+            funnelRender = _funnelDataBuilder.Build(funnelConfig, result.Columns, result.Rows);
         }
         else if (visualization.Type != VisualizationType.Table)
         {
@@ -530,6 +565,8 @@ public class VisualizationsController : Controller
             ChartRender = chartRender,
             CounterConfig = counterConfig,
             CounterRender = counterRender,
+            FunnelConfig = funnelConfig,
+            FunnelRender = funnelRender,
             TableConfig = tableConfig,
             QueryName = visualization.Query.Name,
             Dashboards = dashboards
@@ -635,6 +672,18 @@ public class VisualizationsController : Controller
                 columns = result.Columns,
                 rows = result.Rows,
                 counter = counterRender
+            });
+        }
+        if (visualization.Type == VisualizationType.Funnel)
+        {
+            var funnelConfig = TryDeserializeFunnelConfig(visualization.ConfigJson) ?? FunnelVisualizationConfig.CreateDefault();
+            var funnelRender = _funnelDataBuilder.Build(funnelConfig, result.Columns, result.Rows);
+            return Ok(new
+            {
+                success = true,
+                columns = result.Columns,
+                rows = result.Rows,
+                funnel = funnelRender
             });
         }
         if (visualization.Type != VisualizationType.Table)
@@ -871,6 +920,54 @@ public class VisualizationsController : Controller
         });
     }
 
+    [HttpPost("/visualizations/funnel-preview")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> FunnelPreview([FromBody] FunnelPreviewRequest request)
+    {
+        if (request == null || request.QueryId <= 0)
+        {
+            return BadRequest();
+        }
+
+        if (!await _permissionService.CanViewQueryAsync(User, request.QueryId))
+        {
+            return Forbid();
+        }
+
+        var preview = await _executionPreviewService.GetLatestAsync(request.QueryId, request.ExecutionId, 500);
+        if (!preview.Success)
+        {
+            return Ok(new
+            {
+                success = false,
+                errorMessage = preview.ErrorMessage ?? "No execution results available."
+            });
+        }
+
+        var columns = preview.Columns.Select(c => c.Name).ToList();
+        var rows = preview.Rows.Select(row =>
+        {
+            var values = new List<string?>(columns.Count);
+            foreach (var column in columns)
+            {
+                row.TryGetValue(column, out var value);
+                values.Add(value);
+            }
+            return (IReadOnlyList<string?>)values;
+        }).ToList();
+
+        var config = request.Config ?? FunnelVisualizationConfig.CreateDefault();
+        var render = _funnelDataBuilder.Build(config, columns, rows);
+
+        return Ok(new
+        {
+            success = render.Success,
+            render,
+            errors = render.Errors,
+            warnings = render.Warnings
+        });
+    }
+
     private async Task<bool> CanDeleteVisualizationAsync(Query query)
     {
         if (User.IsInRole("Admin"))
@@ -973,6 +1070,23 @@ public class VisualizationsController : Controller
         try
         {
             return JsonSerializer.Deserialize<CounterVisualizationConfig>(json, CounterConfigJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static FunnelVisualizationConfig? TryDeserializeFunnelConfig(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<FunnelVisualizationConfig>(json, FunnelConfigJsonOptions);
         }
         catch (JsonException)
         {

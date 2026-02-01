@@ -1017,6 +1017,53 @@ body {
   padding: 24px;
 }
 
+.funnel-visualization .funnel-table {
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.funnel-table th {
+  font-weight: 600;
+  color: #475569;
+}
+
+.funnel-value-cell,
+.funnel-prev-cell {
+  position: relative;
+  min-width: 140px;
+}
+
+.funnel-value-bar {
+  position: absolute;
+  inset: 25% 0 25% 0;
+  background: rgba(45, 212, 191, 0.4);
+  border-radius: 4px;
+  z-index: 0;
+}
+
+.funnel-value-text {
+  position: relative;
+  z-index: 1;
+  padding-left: 8px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.funnel-prev-bar {
+  position: absolute;
+  inset: 25% 0 25% 0;
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 4px;
+  z-index: 0;
+}
+
+.funnel-prev-text {
+  position: relative;
+  z-index: 1;
+  padding-left: 8px;
+  color: #0f172a;
+}
+
 .viz-columns-strip {
   display: flex;
   flex-wrap: nowrap;

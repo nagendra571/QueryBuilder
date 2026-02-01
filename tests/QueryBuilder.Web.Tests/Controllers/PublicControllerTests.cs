@@ -94,7 +94,8 @@ public class PublicControllerTests
             parameterService,
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
-            new CounterVisualizationDataBuilder())
+            new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder())
         {
             ControllerContext = new ControllerContext
             {
@@ -123,7 +124,8 @@ public class PublicControllerTests
             parameterService,
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
-            new CounterVisualizationDataBuilder())
+            new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder())
         {
             ControllerContext = new ControllerContext
             {
@@ -164,7 +166,8 @@ public class PublicControllerTests
             parameterService,
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
-            new CounterVisualizationDataBuilder())
+            new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder())
         {
             ControllerContext = new ControllerContext
             {

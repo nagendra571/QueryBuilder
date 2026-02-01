@@ -304,7 +304,7 @@
     const canvas = document.getElementById(canvasId);
     if (!canvas || typeof Chart === "undefined") return;
 
-    if (!payload || payload.type === "Table" || payload.type === "Counter") {
+    if (!payload || payload.type === "Table" || payload.type === "Counter" || payload.type === "Funnel") {
       return;
     }
 
@@ -462,13 +462,118 @@
     valueEl.style.color = color || "";
   };
 
+  const formatPercent = (value) => {
+    if (value === null || value === undefined || Number.isNaN(value)) return "";
+    return `${value.toFixed(2)}%`;
+  };
+
+  const renderFunnel = (containerId, payload) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const render = payload.render || payload.funnel || payload;
+    const config = payload.config || payload.funnelConfig || payload;
+    if (!render) {
+      showCounterMessage(container, "No funnel data available.");
+      return;
+    }
+
+    const errors = render.errors || [];
+    const message = render.message;
+    if (errors.length > 0 || message) {
+      showCounterMessage(container, message || errors[0] || "Unable to render funnel.");
+      return;
+    }
+
+    const rows = render.rows || [];
+    const stepHeader = render.stepHeader || config?.stepDisplayName || "Steps";
+    const valueHeader = render.valueHeader || config?.valueDisplayName || "Value";
+
+    const table = document.createElement("table");
+    table.className = "table table-sm funnel-table";
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    [stepHeader, valueHeader, "% Max", "% Previous"].forEach((label) => {
+      const th = document.createElement("th");
+      th.textContent = label;
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    if (rows.length === 0) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 4;
+      td.className = "text-muted";
+      td.textContent = "No rows returned.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    } else {
+      rows.forEach((row, index) => {
+        const tr = document.createElement("tr");
+
+        const stepCell = document.createElement("td");
+        stepCell.textContent = row.stepLabel || "";
+        tr.appendChild(stepCell);
+
+        const valueCell = document.createElement("td");
+        valueCell.className = "funnel-value-cell";
+        const bar = document.createElement("div");
+        bar.className = "funnel-value-bar";
+        bar.style.width = `${Math.min(100, Math.max(0, row.percentMax || 0))}%`;
+        const valueText = document.createElement("span");
+        valueText.className = "funnel-value-text";
+        valueText.textContent = formatNumber(row.value, "0,0");
+        valueCell.appendChild(bar);
+        valueCell.appendChild(valueText);
+        tr.appendChild(valueCell);
+
+        const maxCell = document.createElement("td");
+        maxCell.textContent = formatPercent(row.percentMax || 0);
+        tr.appendChild(maxCell);
+
+        const prevCell = document.createElement("td");
+        prevCell.className = "funnel-prev-cell";
+        const prevBar = document.createElement("div");
+        prevBar.className = "funnel-prev-bar";
+        const prevValue = row.percentPrevious || 0;
+        prevBar.style.width = `${Math.min(250, Math.max(0, prevValue))}%`;
+        const prevText = document.createElement("span");
+        prevText.className = "funnel-prev-text";
+        prevText.textContent = formatPercent(prevValue);
+        prevCell.appendChild(prevBar);
+        prevCell.appendChild(prevText);
+        tr.appendChild(prevCell);
+
+        tbody.appendChild(tr);
+      });
+    }
+    table.appendChild(tbody);
+
+    container.innerHTML = "";
+    container.appendChild(table);
+    if (render.truncated) {
+      const note = document.createElement("div");
+      note.className = "text-muted small mt-2";
+      note.textContent = "Showing first 50 rows.";
+      container.appendChild(note);
+    }
+  };
+
   window.queryBuilderViz = window.queryBuilderViz || {};
   window.queryBuilderViz.renderChart = renderChart;
   window.queryBuilderViz.renderCounter = renderCounter;
+  window.queryBuilderViz.renderFunnel = renderFunnel;
 
   const renderVisualization = (targetId, payload) => {
     if (payload?.type === "Counter") {
       renderCounter(targetId, payload);
+      return;
+    }
+    if (payload?.type === "Funnel") {
+      renderFunnel(targetId, payload);
       return;
     }
     renderChart(targetId, payload);
@@ -479,7 +584,11 @@
   }
 
   if (window.queryBuilderViz?.details) {
-    const targetId = window.queryBuilderViz.details?.type === "Counter" ? "vizCounter" : "vizChart";
+    const targetId = window.queryBuilderViz.details?.type === "Counter"
+      ? "vizCounter"
+      : window.queryBuilderViz.details?.type === "Funnel"
+        ? "vizFunnel"
+        : "vizChart";
     renderVisualization(targetId, window.queryBuilderViz.details);
   }
 

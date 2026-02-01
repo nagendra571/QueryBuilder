@@ -20,6 +20,12 @@
     var counterRenderJson = JsonSerializer.Serialize(
         Model.CounterRender ?? new QueryBuilder.Web.Models.Visualizations.CounterVisualizationRenderModel(),
         new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    var funnelConfigJson = JsonSerializer.Serialize(
+        Model.FunnelConfig ?? new QueryBuilder.Web.Models.Visualizations.FunnelVisualizationConfig(),
+        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    var funnelRenderJson = JsonSerializer.Serialize(
+        Model.FunnelRender ?? new QueryBuilder.Web.Models.Visualizations.FunnelVisualizationRenderModel(),
+        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 }
 
     <div class="viz-details-header d-flex align-items-center justify-content-between mb-3">
@@ -107,6 +113,14 @@ else
             </div>
         </div>
     }
+    else if (Model.Visualization.Type == QueryBuilder.Domain.Entities.VisualizationType.Funnel)
+    {
+        <div class="card viz-card mb-3" id="viz-details-container" data-visualization-id="@Model.Visualization.Id" data-visualization-type="@Model.Visualization.Type">
+            <div class="card-body">
+                <div id="vizFunnel" class="funnel-visualization"></div>
+            </div>
+        </div>
+    }
     else
     {
         <div class="card viz-card mb-3" id="viz-details-container" data-visualization-id="@Model.Visualization.Id" data-visualization-type="@Model.Visualization.Type">
@@ -125,6 +139,17 @@ else
             type: "@Model.Visualization.Type",
             config: @Html.Raw(counterConfigJson),
             render: @Html.Raw(counterRenderJson)
+        };
+    </script>
+}
+else if (Model.Visualization.Type == QueryBuilder.Domain.Entities.VisualizationType.Funnel)
+{
+    <script>
+        window.queryBuilderViz = window.queryBuilderViz || {};
+        window.queryBuilderViz.details = {
+            type: "@Model.Visualization.Type",
+            config: @Html.Raw(funnelConfigJson),
+            render: @Html.Raw(funnelRenderJson)
         };
     </script>
 }
