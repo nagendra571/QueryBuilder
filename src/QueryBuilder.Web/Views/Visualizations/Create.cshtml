@@ -132,7 +132,10 @@
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizCounterFormat" type="button" role="tab" data-viz-tab="counter">Format</button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizFunnel" type="button" role="tab" data-viz-tab="funnel">Funnel</button>
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizFunnelGeneral" type="button" role="tab" data-viz-tab="funnel">General</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizFunnelFormat" type="button" role="tab" data-viz-tab="funnel">Format</button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizTableColumns" type="button" role="tab" data-viz-tab="table">Columns</button>
@@ -423,7 +426,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="tab-pane fade" id="vizFunnel" role="tabpanel">
+                    <div class="tab-pane fade" id="vizFunnelGeneral" role="tabpanel">
                         <div class="mb-3">
                             <label class="form-label" for="funnelStepColumn">Step Column Name</label>
                             <select class="form-select" id="funnelStepColumn">
@@ -467,6 +470,132 @@
                                     <option value="@column">@column</option>
                                 }
                             </select>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="vizFunnelFormat" role="tabpanel">
+                        <div class="border rounded-3 p-3 bg-light mb-4">
+                            <div class="fw-semibold mb-2">Colors</div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelValueBarColor">Value Bar Color</label>
+                                <select class="form-select" id="funnelValueBarColor">
+                                    <option value="teal">Teal</option>
+                                    <option value="blue">Blue</option>
+                                    <option value="red">Red</option>
+                                    <option value="green">Green</option>
+                                    <option value="purple">Purple</option>
+                                    <option value="cyan">Cyan</option>
+                                    <option value="orange">Orange</option>
+                                    <option value="light blue">Light blue</option>
+                                    <option value="yellow">Yellow</option>
+                                    <option value="gray">Gray</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelPrevBarColor">Previous % Bar Color</label>
+                                <select class="form-select" id="funnelPrevBarColor">
+                                    <option value="gray">Gray</option>
+                                    <option value="teal">Teal</option>
+                                    <option value="blue">Blue</option>
+                                    <option value="red">Red</option>
+                                    <option value="green">Green</option>
+                                    <option value="purple">Purple</option>
+                                    <option value="cyan">Cyan</option>
+                                    <option value="orange">Orange</option>
+                                    <option value="light blue">Light blue</option>
+                                    <option value="yellow">Yellow</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelHeaderTextColor">Header/Text Color (optional)</label>
+                                <select class="form-select" id="funnelHeaderTextColor">
+                                    <option value="">Inherit</option>
+                                    <option value="slate">Slate</option>
+                                    <option value="blue">Blue</option>
+                                    <option value="teal">Teal</option>
+                                    <option value="gray">Gray</option>
+                                </select>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="funnelAutoColorSteps">
+                                <label class="form-check-label" for="funnelAutoColorSteps">Auto color by step</label>
+                            </div>
+                        </div>
+                        <div class="border rounded-3 p-3 bg-light mb-4">
+                            <div class="fw-semibold mb-2">Bars</div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelValueBarHeight">Value Bar Height (px)</label>
+                                <input class="form-control" id="funnelValueBarHeight" type="number" min="8" max="40" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelPrevBarHeight">Previous % Bar Height (px)</label>
+                                <input class="form-control" id="funnelPrevBarHeight" type="number" min="8" max="40" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelBarRadius">Bar Corner Radius (px)</label>
+                                <input class="form-control" id="funnelBarRadius" type="number" min="0" max="12" />
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="funnelShowValueBar">
+                                <label class="form-check-label" for="funnelShowValueBar">Show Value Bar</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="funnelShowPrevBar">
+                                <label class="form-check-label" for="funnelShowPrevBar">Show Previous % Bar</label>
+                            </div>
+                        </div>
+                        <div class="border rounded-3 p-3 bg-light mb-4">
+                            <div class="fw-semibold mb-2">Formatting</div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelValueNumberFormat">Value Number Format</label>
+                                <input class="form-control" id="funnelValueNumberFormat" type="text" placeholder="0,0" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelNullHandling">Null Handling</label>
+                                <select class="form-select" id="funnelNullHandling">
+                                    <option value="zero">Treat null as 0</option>
+                                    <option value="skip">Skip row</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelPercentPrecision">Percent Precision</label>
+                                <input class="form-control" id="funnelPercentPrecision" type="number" min="0" max="6" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelCapPercentPrevious">Cap % Previous (bar width)</label>
+                                <input class="form-control" id="funnelCapPercentPrevious" type="number" min="50" max="1000" />
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="funnelShowPercentSign">
+                                <label class="form-check-label" for="funnelShowPercentSign">Show percent sign</label>
+                            </div>
+                        </div>
+                        <div class="border rounded-3 p-3 bg-light mb-4">
+                            <div class="fw-semibold mb-2">Top N + Others</div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelTopN">Top N Steps (0 = all)</label>
+                                <input class="form-control" id="funnelTopN" type="number" min="0" />
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="funnelIncludeOthers">
+                                <label class="form-check-label" for="funnelIncludeOthers">Include "Others" row</label>
+                            </div>
+                        </div>
+                        <div class="border rounded-3 p-3 bg-light">
+                            <div class="fw-semibold mb-2">Aggregation</div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="funnelAggregateSteps">
+                                <label class="form-check-label" for="funnelAggregateSteps">Aggregate duplicate steps</label>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="funnelAggregation">Aggregation Function</label>
+                                <select class="form-select" id="funnelAggregation">
+                                    <option value="sum">Sum</option>
+                                    <option value="avg">Avg</option>
+                                    <option value="min">Min</option>
+                                    <option value="max">Max</option>
+                                    <option value="count">Count</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div class="tab-pane fade" id="vizTableColumns" role="tabpanel">
@@ -679,7 +808,7 @@
             if (tablePreview) {
                 tablePreview.classList.toggle('d-none', !isTable);
             }
-            setActiveTab(isTable ? '#vizTableColumns' : isCounter ? '#vizCounterGeneral' : isFunnel ? '#vizFunnel' : '#vizGeneral');
+            setActiveTab(isTable ? '#vizTableColumns' : isCounter ? '#vizCounterGeneral' : isFunnel ? '#vizFunnelGeneral' : '#vizGeneral');
         };
 
         typeSelect?.addEventListener('change', updateTabVisibility);
