@@ -59,6 +59,7 @@ public class VisualizationsControllerTests
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
             new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder(),
             new QueryExecutionPreviewService(dbContext));
 
         var model = new VisualizationEditViewModel
@@ -120,6 +121,7 @@ public class VisualizationsControllerTests
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
             new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder(),
             new QueryExecutionPreviewService(dbContext));
 
         var model = new VisualizationEditViewModel
@@ -193,6 +195,7 @@ public class VisualizationsControllerTests
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
             new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder(),
             new QueryExecutionPreviewService(dbContext));
 
         var result = await controller.Data(1);
@@ -253,6 +256,7 @@ public class VisualizationsControllerTests
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
             new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder(),
             new QueryExecutionPreviewService(dbContext))
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
@@ -328,6 +332,7 @@ public class VisualizationsControllerTests
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
             new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder(),
             new QueryExecutionPreviewService(dbContext))
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
@@ -348,6 +353,78 @@ public class VisualizationsControllerTests
         };
 
         var result = await controller.CounterPreview(request);
+
+        result.Should().BeOfType<OkObjectResult>();
+        var ok = (OkObjectResult)result;
+        ok.Value.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task FunnelPreview_Returns_Render_Model_When_Config_Is_Valid()
+    {
+        using var dbContext = TestDbContextFactory.CreateDbContext();
+        dbContext.Queries.Add(new Query
+        {
+            Id = 1,
+            Name = "Query",
+            DataSourceId = 1,
+            SqlText = "select 1",
+            CreatedById = "editor-1",
+            UpdatedById = "editor-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.QueryExecutions.Add(new QueryExecution
+        {
+            QueryId = 1,
+            Status = QueryExecutionStatus.Success,
+            ResultJson = JsonSerializer.Serialize(new QueryExecutionResult
+            {
+                Columns = new List<string> { "step", "value" },
+                Rows = new List<IReadOnlyList<string?>>
+                {
+                    new[] { "A", "10" }
+                }
+            }),
+            StartedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var dataProtectionProvider = DataProtectionProvider.Create("QueryBuilder.Tests");
+        var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
+        var parameterService = new FakeQueryParameterService();
+        var visualizationService = new Mock<IVisualizationService>();
+        var userManager = UserManagerMockHelper.Create("editor-1");
+        var permissionService = new PermissionService(dbContext, userManager.Object);
+        var controller = new VisualizationsController(
+            dbContext,
+            queryRunner,
+            new NullLogger<VisualizationsController>(),
+            parameterService,
+            visualizationService.Object,
+            permissionService,
+            userManager.Object,
+            new TableVisualizationConfigBuilder(),
+            new ChartVisualizationDataBuilder(),
+            new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder(),
+            new QueryExecutionPreviewService(dbContext))
+        {
+            ControllerContext = ControllerTestHelpers.CreateControllerContext(
+                ControllerTestHelpers.CreateUser("editor-1", "Editor"))
+        };
+
+        var request = new FunnelPreviewRequest
+        {
+            QueryId = 1,
+            Config = new FunnelVisualizationConfig
+            {
+                StepColumn = "step",
+                ValueColumn = "value"
+            }
+        };
+
+        var result = await controller.FunnelPreview(request);
 
         result.Should().BeOfType<OkObjectResult>();
         var ok = (OkObjectResult)result;

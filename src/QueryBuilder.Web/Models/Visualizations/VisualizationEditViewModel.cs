@@ -66,6 +66,7 @@ public class VisualizationEditViewModel
     public string? TableConfigJson { get; set; }
     public string? ChartConfigJson { get; set; }
     public string? CounterConfigJson { get; set; }
+    public string? FunnelConfigJson { get; set; }
     public string? SubmitAction { get; set; }
     public QueryResultViewModel? Result { get; set; }
     public IReadOnlyList<QueryParameterDefinitionViewModel> ParameterDefinitions { get; set; } = Array.Empty<QueryParameterDefinitionViewModel>();

@@ -9,7 +9,8 @@ public enum VisualizationType
     FloatingBar = 5,
     HorizontalBar = 6,
     Chart = 7,
-    Counter = 8
+    Counter = 8,
+    Funnel = 9
 }
 
 public class Visualization

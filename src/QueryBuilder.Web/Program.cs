@@ -24,6 +24,7 @@ builder.Services.AddScoped<PublicShareService>();
 builder.Services.AddScoped<TableVisualizationConfigBuilder>();
 builder.Services.AddScoped<ChartVisualizationDataBuilder>();
 builder.Services.AddScoped<CounterVisualizationDataBuilder>();
+builder.Services.AddScoped<FunnelVisualizationDataBuilder>();
 builder.Services.AddScoped<QueryExecutionPreviewService>();
 builder.Services.AddScoped<IQueryParameterService, QueryParameterService>();
 builder.Services.AddScoped<IVisualizationService, VisualizationService>();

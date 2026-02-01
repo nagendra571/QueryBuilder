@@ -22,6 +22,7 @@ public class PublicController : Controller
     private readonly TableVisualizationConfigBuilder _tableConfigBuilder;
     private readonly ChartVisualizationDataBuilder _chartDataBuilder;
     private readonly CounterVisualizationDataBuilder _counterDataBuilder;
+    private readonly FunnelVisualizationDataBuilder _funnelDataBuilder;
     private static readonly JsonSerializerOptions TableConfigJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -37,6 +38,11 @@ public class PublicController : Controller
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true
     };
+    private static readonly JsonSerializerOptions FunnelConfigJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
 
     public PublicController(
         ApplicationDbContext dbContext,
@@ -46,7 +52,8 @@ public class PublicController : Controller
         IQueryParameterService parameterService,
         TableVisualizationConfigBuilder tableConfigBuilder,
         ChartVisualizationDataBuilder chartDataBuilder,
-        CounterVisualizationDataBuilder counterDataBuilder)
+        CounterVisualizationDataBuilder counterDataBuilder,
+        FunnelVisualizationDataBuilder funnelDataBuilder)
     {
         _dbContext = dbContext;
         _queryRunner = queryRunner;
@@ -56,6 +63,7 @@ public class PublicController : Controller
         _tableConfigBuilder = tableConfigBuilder;
         _chartDataBuilder = chartDataBuilder;
         _counterDataBuilder = counterDataBuilder;
+        _funnelDataBuilder = funnelDataBuilder;
     }
 
     [HttpGet("public/d/{token}")]
@@ -171,6 +179,18 @@ public class PublicController : Controller
                 counter = counterRender
             });
         }
+        if (widget.Visualization.Type == VisualizationType.Funnel)
+        {
+            var funnelConfig = TryDeserializeFunnelConfig(widget.Visualization.ConfigJson) ?? FunnelVisualizationConfig.CreateDefault();
+            var funnelRender = _funnelDataBuilder.Build(funnelConfig, result.Columns, result.Rows);
+            return Ok(new
+            {
+                success = true,
+                columns = result.Columns,
+                rows = result.Rows,
+                funnel = funnelRender
+            });
+        }
         if (widget.Visualization.Type != VisualizationType.Table)
         {
             var chartConfig = TryDeserializeChartConfig(widget.Visualization.ConfigJson) ?? ChartVisualizationConfig.CreateDefault();
@@ -270,6 +290,7 @@ public class PublicController : Controller
             }
             var chartConfig = TryDeserializeChartConfig(widget.Visualization.ConfigJson) ?? ChartVisualizationConfig.CreateDefault();
             var counterConfig = TryDeserializeCounterConfig(widget.Visualization.ConfigJson) ?? CounterVisualizationConfig.CreateDefault();
+            var funnelConfig = TryDeserializeFunnelConfig(widget.Visualization.ConfigJson) ?? FunnelVisualizationConfig.CreateDefault();
             TableVisualizationConfig? tableConfig = null;
             if (widget.Visualization.Type == VisualizationType.Table)
             {
@@ -278,9 +299,14 @@ public class PublicController : Controller
             }
             ChartVisualizationRenderModel? chartRender = null;
             CounterVisualizationRenderModel? counterRender = null;
+            FunnelVisualizationRenderModel? funnelRender = null;
             if (widget.Visualization.Type == VisualizationType.Counter)
             {
                 counterRender = _counterDataBuilder.Build(counterConfig, result.Columns, result.Rows);
+            }
+            else if (widget.Visualization.Type == VisualizationType.Funnel)
+            {
+                funnelRender = _funnelDataBuilder.Build(funnelConfig, result.Columns, result.Rows);
             }
             else if (widget.Visualization.Type != VisualizationType.Table)
             {
@@ -295,6 +321,8 @@ public class PublicController : Controller
                 ChartRender = chartRender,
                 CounterConfig = counterConfig,
                 CounterRender = counterRender,
+                FunnelConfig = funnelConfig,
+                FunnelRender = funnelRender,
                 TableConfig = tableConfig,
                 Result = result
             });
@@ -523,6 +551,23 @@ public class PublicController : Controller
         try
         {
             return JsonSerializer.Deserialize<CounterVisualizationConfig>(json, CounterConfigJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static FunnelVisualizationConfig? TryDeserializeFunnelConfig(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<FunnelVisualizationConfig>(json, FunnelConfigJsonOptions);
         }
         catch (JsonException)
         {

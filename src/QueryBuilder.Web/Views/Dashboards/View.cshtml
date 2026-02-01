@@ -240,6 +240,8 @@
                 chartRender: @Html.Raw(JsonSerializer.Serialize(widget.ChartRender, jsonOptions)),
                 counterConfig: @Html.Raw(JsonSerializer.Serialize(widget.CounterConfig, jsonOptions)),
                 counterRender: @Html.Raw(JsonSerializer.Serialize(widget.CounterRender, jsonOptions)),
+                funnelConfig: @Html.Raw(JsonSerializer.Serialize(widget.FunnelConfig, jsonOptions)),
+                funnelRender: @Html.Raw(JsonSerializer.Serialize(widget.FunnelRender, jsonOptions)),
                     tableConfig: @Html.Raw(JsonSerializer.Serialize(widget.TableConfig, jsonOptions))
                 });
             </text>
@@ -330,6 +332,17 @@
                     config: widget.counterConfig,
                     render: widget.counterRender
                 });
+            } else if (widget.visualizationType === "Funnel") {
+                const funnelHost = document.createElement('div');
+                funnelHost.id = `viz-${widget.id}`;
+                funnelHost.className = 'funnel-visualization';
+                body.appendChild(funnelHost);
+                window.queryBuilderViz.multi.push({
+                    canvasId: funnelHost.id,
+                    type: widget.visualizationType,
+                    config: widget.funnelConfig,
+                    render: widget.funnelRender
+                });
             } else {
                 const canvas = document.createElement('canvas');
                 canvas.id = `viz-${widget.id}`;
@@ -388,6 +401,7 @@
                 endpoint: `/dashboards/data/${@Model.Dashboard.Id}/widgets/${widget.id}`,
                 tableConfig: widget.tableConfig,
                 counterConfig: widget.counterConfig,
+                funnelConfig: widget.funnelConfig,
                 allowUnsafeHtml: @((User.IsInRole("Admin") || User.IsInRole("Editor")).ToString().ToLowerInvariant())
             }))
         };

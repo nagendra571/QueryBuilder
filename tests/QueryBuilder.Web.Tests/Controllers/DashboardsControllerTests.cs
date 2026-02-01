@@ -41,7 +41,8 @@ public class DashboardsControllerTests
             parameterService,
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
-            new CounterVisualizationDataBuilder())
+            new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder())
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("viewer-1", "Viewer"))
@@ -105,7 +106,8 @@ public class DashboardsControllerTests
             parameterService,
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
-            new CounterVisualizationDataBuilder())
+            new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder())
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("editor-1", "Editor"))
@@ -175,7 +177,8 @@ public class DashboardsControllerTests
             parameterService,
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
-            new CounterVisualizationDataBuilder())
+            new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder())
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser("viewer-1", "Viewer"))
@@ -260,7 +263,8 @@ public class DashboardsControllerTests
             parameterService,
             new TableVisualizationConfigBuilder(),
             new ChartVisualizationDataBuilder(),
-            new CounterVisualizationDataBuilder())
+            new CounterVisualizationDataBuilder(),
+            new FunnelVisualizationDataBuilder())
         {
             ControllerContext = ControllerTestHelpers.CreateControllerContext(
                 ControllerTestHelpers.CreateUser(userId, "Viewer"))

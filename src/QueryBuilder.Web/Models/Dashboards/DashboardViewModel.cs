@@ -24,6 +24,8 @@ public class DashboardWidgetViewModel
     public ChartVisualizationRenderModel? ChartRender { get; set; }
     public CounterVisualizationConfig CounterConfig { get; set; } = new();
     public CounterVisualizationRenderModel? CounterRender { get; set; }
+    public FunnelVisualizationConfig FunnelConfig { get; set; } = new();
+    public FunnelVisualizationRenderModel? FunnelRender { get; set; }
     public TableVisualizationConfig? TableConfig { get; set; }
     public QueryResultViewModel Result { get; set; } = new();
 }
