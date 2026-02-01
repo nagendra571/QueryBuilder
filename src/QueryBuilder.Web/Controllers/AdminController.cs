@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using QueryBuilder.Domain.Entities;
 using QueryBuilder.Web.Data;
 using QueryBuilder.Web.Models.Admin;
+using QueryBuilder.Web.Services;
 
 namespace QueryBuilder.Web.Controllers;
 
@@ -14,11 +15,85 @@ public class AdminController : Controller
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly IFeatureFlagService _featureFlags;
 
-    public AdminController(ApplicationDbContext dbContext, UserManager<IdentityUser> userManager)
+    public AdminController(ApplicationDbContext dbContext, UserManager<IdentityUser> userManager, IFeatureFlagService featureFlags)
     {
         _dbContext = dbContext;
         _userManager = userManager;
+        _featureFlags = featureFlags;
+    }
+
+    public IActionResult Features()
+    {
+        return RedirectToAction(nameof(FeatureFlags));
+    }
+
+    public async Task<IActionResult> FeatureFlags()
+    {
+        var flags = await _featureFlags.GetAllAsync();
+        return View(new FeatureFlagsViewModel { Flags = flags });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateFeature(string key, bool isEnabled, string? rowVersion)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            TempData["StatusMessage"] = "Feature key is required.";
+            return RedirectToAction(nameof(FeatureFlags));
+        }
+
+        var updatedBy = User?.Identity?.Name ?? "unknown";
+        try
+        {
+            var rowVersionBytes = string.IsNullOrWhiteSpace(rowVersion) ? null : Convert.FromBase64String(rowVersion);
+            await _featureFlags.UpdateAsync(key, isEnabled, updatedBy, rowVersionBytes);
+            TempData["StatusMessage"] = "Feature flag updated.";
+        }
+        catch (FeatureFlagConcurrencyException ex)
+        {
+            TempData["StatusMessage"] = ex.Message;
+        }
+        catch (FormatException)
+        {
+            TempData["StatusMessage"] = "Unable to update feature flag due to invalid concurrency token.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["StatusMessage"] = ex.Message;
+        }
+
+        return RedirectToAction(nameof(FeatureFlags));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateFeature(FeatureFlagCreateInputModel input)
+    {
+        if (string.IsNullOrWhiteSpace(input.Key))
+        {
+            TempData["StatusMessage"] = "Feature key is required.";
+            return RedirectToAction(nameof(FeatureFlags));
+        }
+
+        var updatedBy = User?.Identity?.Name ?? "unknown";
+        try
+        {
+            await _featureFlags.CreateAsync(input.Key, input.Description, input.IsEnabled, updatedBy);
+            TempData["StatusMessage"] = "Feature flag created.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["StatusMessage"] = ex.Message;
+        }
+        catch (ArgumentException ex)
+        {
+            TempData["StatusMessage"] = ex.Message;
+        }
+
+        return RedirectToAction(nameof(FeatureFlags));
     }
 
     public async Task<IActionResult> Users()

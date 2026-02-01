@@ -1,4 +1,8 @@
-﻿<!DOCTYPE html>
+@inject QueryBuilder.Web.Services.IFeatureFlagService FeatureFlags
+@{
+    var newAppearance = await FeatureFlags.IsEnabledAsync("NewAppearance");
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -8,9 +12,13 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @if (newAppearance)
+    {
+        <link rel="stylesheet" href="~/css/theme.compact.css" asp-append-version="true" />
+    }
     <link rel="stylesheet" href="~/QueryBuilder.Web.styles.css" asp-append-version="true" />
 </head>
-<body class="app-shell">
+<body class="app-shell @(newAppearance ? "theme-compact" : "")">
     @{
         var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
         var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
@@ -68,6 +76,12 @@
                                 <span class="sidebar-label">Groups</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(currentController == "Admin" && currentAction == "FeatureFlags" ? "active" : "")" asp-area="" asp-controller="Admin" asp-action="FeatureFlags">
+                                <span class="sidebar-icon bi bi-sliders"></span>
+                                <span class="sidebar-label">Feature Flags</span>
+                            </a>
+                        </li>
                     }
                 </ul>
                 <div class="sidebar-footer mt-auto">
@@ -121,6 +135,12 @@
                         <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Groups">
                             <span class="sidebar-icon bi bi-people-fill"></span>
                             <span class="sidebar-label">Groups</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="FeatureFlags">
+                            <span class="sidebar-icon bi bi-sliders"></span>
+                            <span class="sidebar-label">Feature Flags</span>
                         </a>
                     </li>
                 }

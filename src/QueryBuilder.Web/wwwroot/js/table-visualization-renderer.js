@@ -115,7 +115,7 @@
       tableWrap.innerHTML = "";
 
       const table = document.createElement("table");
-      table.className = "table table-sm table-hover mb-0";
+      table.className = "table table-sm table-hover table-compact mb-0";
       const thead = document.createElement("thead");
       const headRow = document.createElement("tr");
       visibleColumns.forEach((column) => {

@@ -20,10 +20,10 @@
         <div class="d-flex align-items-center gap-2">
             @if (User.IsInRole("Admin") || User.IsInRole("Editor"))
             {
-                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#shareDashboardModal">
+                <button class="btn btn-outline-secondary btn-compact" type="button" data-bs-toggle="modal" data-bs-target="#shareDashboardModal">
                     <i class="bi bi-share me-1"></i>Share
                 </button>
-                <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@Model.Dashboard.Id">Edit</a>
+                <a class="btn btn-outline-primary btn-compact" asp-action="Edit" asp-route-id="@Model.Dashboard.Id">Edit</a>
             }
         </div>
     </div>
@@ -71,7 +71,7 @@
                                 @switch (control.Type)
                                 {
                                     case QueryBuilder.Domain.Entities.QueryParameterType.Number:
-                                        <input class="form-control form-control-sm" type="number" name="dc_@key" value="@(values.TryGetValue(key, out var numVal) ? numVal : control.DefaultValue)" data-dashboard-control="true" />
+                                        <input class="form-control form-control-sm input-compact" type="number" name="dc_@key" value="@(values.TryGetValue(key, out var numVal) ? numVal : control.DefaultValue)" data-dashboard-control="true" />
                                         break;
                                     case QueryBuilder.Domain.Entities.QueryParameterType.Dropdown:
                                         var options = new List<QueryBuilder.Web.Models.Queries.QueryParameterOptionViewModel>();
@@ -102,7 +102,7 @@
                                                 }
                                             }
                                         }
-                                        <select class="form-select form-select-sm" name="dc_@key" data-dashboard-control="true">
+                                        <select class="form-select form-select-sm input-compact" name="dc_@key" data-dashboard-control="true">
                                             <option value="">Select</option>
                                             @foreach (var opt in options)
                                             {
@@ -112,21 +112,21 @@
                                         </select>
                                         break;
                                     case QueryBuilder.Domain.Entities.QueryParameterType.Date:
-                                        <input class="form-control form-control-sm" type="date" name="dc_@key" value="@(values.TryGetValue(key, out var dateVal) ? dateVal : control.DefaultValue)" data-dashboard-control="true" />
+                                        <input class="form-control form-control-sm input-compact" type="date" name="dc_@key" value="@(values.TryGetValue(key, out var dateVal) ? dateVal : control.DefaultValue)" data-dashboard-control="true" />
                                         break;
                                     case QueryBuilder.Domain.Entities.QueryParameterType.DateTime:
-                                        <input class="form-control form-control-sm" type="datetime-local" name="dc_@key" value="@(values.TryGetValue(key, out var dtVal) ? dtVal : control.DefaultValue)" data-dashboard-control="true" />
+                                        <input class="form-control form-control-sm input-compact" type="datetime-local" name="dc_@key" value="@(values.TryGetValue(key, out var dtVal) ? dtVal : control.DefaultValue)" data-dashboard-control="true" />
                                         break;
                                     case QueryBuilder.Domain.Entities.QueryParameterType.DateRange:
                                     case QueryBuilder.Domain.Entities.QueryParameterType.DateTimeRange:
                                         var inputType = control.Type == QueryBuilder.Domain.Entities.QueryParameterType.DateRange ? "date" : "datetime-local";
                                         <div class="d-flex gap-2">
-                                            <input class="form-control form-control-sm" type="@inputType" name="@($"dc_{key}_start")" value="@(values.TryGetValue($"{key}.start", out var startVal) ? startVal : string.Empty)" data-dashboard-control="true" />
-                                            <input class="form-control form-control-sm" type="@inputType" name="@($"dc_{key}_end")" value="@(values.TryGetValue($"{key}.end", out var endVal) ? endVal : string.Empty)" data-dashboard-control="true" />
+                                            <input class="form-control form-control-sm input-compact" type="@inputType" name="@($"dc_{key}_start")" value="@(values.TryGetValue($"{key}.start", out var startVal) ? startVal : string.Empty)" data-dashboard-control="true" />
+                                            <input class="form-control form-control-sm input-compact" type="@inputType" name="@($"dc_{key}_end")" value="@(values.TryGetValue($"{key}.end", out var endVal) ? endVal : string.Empty)" data-dashboard-control="true" />
                                         </div>
                                         break;
                                     default:
-                                        <input class="form-control form-control-sm" type="text" name="dc_@key" value="@(values.TryGetValue(key, out var textVal) ? textVal : control.DefaultValue)" data-dashboard-control="true" />
+                                        <input class="form-control form-control-sm input-compact" type="text" name="dc_@key" value="@(values.TryGetValue(key, out var textVal) ? textVal : control.DefaultValue)" data-dashboard-control="true" />
                                         break;
                                 }
                             </div>
@@ -134,7 +134,7 @@
                     </div>
                 }
                 <div class="dashboard-parameter-actions">
-                    <button class="btn btn-sm btn-primary" type="button" id="dashboardApplyBtn">Apply</button>
+                    <button class="btn btn-sm btn-primary btn-compact" type="button" id="dashboardApplyBtn">Apply</button>
                 </div>
             </div>
         }

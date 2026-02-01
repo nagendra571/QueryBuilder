@@ -1346,6 +1346,17 @@ textarea:focus-visible {
   box-shadow: var(--app-shadow-md);
 }
 
+.home-hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.home-quick-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
 .home-hero-content {
   display: flex;
   flex-direction: column;
@@ -1463,6 +1474,17 @@ textarea:focus-visible {
   background: rgba(14, 165, 233, 0.18);
   filter: blur(50px);
   z-index: -1;
+}
+
+.home-workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.home-workspace-card .home-step-grid,
+.home-workspace-card .home-feature-grid {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .home-section-title {
