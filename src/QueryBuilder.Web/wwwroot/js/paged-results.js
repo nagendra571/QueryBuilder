@@ -27,7 +27,7 @@
       return;
     }
     const table = document.createElement("table");
-    table.className = "table table-sm table-striped mb-0";
+    table.className = "table table-sm table-striped table-compact mb-0";
     const thead = document.createElement("thead");
     const headRow = document.createElement("tr");
     columns.forEach((name) => {

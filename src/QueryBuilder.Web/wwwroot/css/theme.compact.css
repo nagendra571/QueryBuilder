@@ -1,0 +1,671 @@
+/* Compact Enterprise theme overrides (opt-in via .theme-compact on body) */
+
+.theme-compact {
+  --app-space-1: 4px;
+  --app-space-2: 8px;
+  --app-space-3: 12px;
+  --app-space-4: 16px;
+  --app-space-5: 24px;
+  --app-radius-1: 2px;
+  --app-radius-2: 4px;
+  --app-radius-3: 6px;
+  --app-font-sans: "Inter", "Segoe UI", sans-serif;
+  --app-font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, "Courier New", monospace;
+  --app-header-height: 52px;
+  --app-sidebar-width: 208px;
+  --app-border: #d0d7e2;
+  --app-divider: #e4e8f0;
+  --app-shadow-sm: none;
+  --app-shadow-md: none;
+  --bs-border-radius: 4px;
+  --bs-border-radius-sm: 2px;
+  --bs-border-radius-lg: 6px;
+  --bs-body-font-size: 13px;
+  --bs-body-line-height: 1.35;
+  --bs-body-font-family: var(--app-font-sans);
+}
+
+.theme-compact body,
+body.theme-compact {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.theme-compact .app-header {
+  padding: 0 var(--app-space-3);
+  box-shadow: none;
+  gap: var(--app-space-2);
+}
+
+.theme-compact .app-page-title {
+  font-size: 1rem;
+}
+
+.theme-compact .app-content {
+  padding: var(--app-space-4);
+  padding-bottom: var(--app-space-2);
+  max-width: 1600px;
+}
+
+.theme-compact .app-sidebar {
+  padding: var(--app-space-2) var(--app-space-2);
+}
+
+.theme-compact .app-sidebar .nav-link {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  border-radius: var(--app-radius-2);
+}
+
+.theme-compact .app-footer {
+  padding: var(--app-space-2) var(--app-space-3);
+  font-size: 0.8rem;
+}
+
+.theme-compact .btn,
+.theme-compact .btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  min-height: 28px;
+  border-radius: var(--app-radius-2);
+}
+
+.theme-compact .btn-lg {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.9rem;
+}
+
+.theme-compact .form-control,
+.theme-compact .form-select,
+.theme-compact .form-control-sm,
+.theme-compact .form-select-sm {
+  min-height: 30px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  border-radius: var(--app-radius-2);
+}
+
+body.theme-compact .form-check-input,
+.theme-compact .form-check-input {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-top: 0;
+  border-radius: var(--app-radius-1);
+  border: 1px solid #aab4c3;
+  background-color: #ffffff;
+  box-shadow: none;
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-block;
+  position: relative;
+  vertical-align: middle;
+}
+
+body.theme-compact .form-check-input[type="radio"],
+.theme-compact .form-check-input[type="radio"] {
+  border-radius: 999px;
+}
+
+body.theme-compact .form-check-input:checked,
+.theme-compact .form-check-input:checked {
+  background-color: var(--app-accent);
+  border-color: var(--app-accent);
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+body.theme-compact .form-check-input[type="checkbox"]:checked,
+.theme-compact .form-check-input[type="checkbox"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l2.4 2.4L12.5 4.8' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 0.55rem 0.55rem;
+}
+
+body.theme-compact .form-check-input[type="radio"]:checked,
+.theme-compact .form-check-input[type="radio"]:checked {
+  background-image: radial-gradient(circle at center, #ffffff 0 38%, transparent 40%);
+  background-size: 100% 100%;
+}
+
+body.theme-compact .form-check-input:focus,
+.theme-compact .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem rgba(37, 99, 235, 0.18);
+}
+
+body.theme-compact .form-switch .form-check-input,
+.theme-compact .form-switch .form-check-input {
+  width: 1.7rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  background-color: #e5e7eb;
+  border-color: #cbd5e1;
+  background-image: radial-gradient(circle, #ffffff 0 45%, transparent 46%);
+  background-repeat: no-repeat;
+  background-position: left 0.15rem center;
+  background-size: 0.7rem 0.7rem;
+}
+
+body.theme-compact .form-switch .form-check-input:checked,
+.theme-compact .form-switch .form-check-input:checked {
+  background-color: var(--app-accent);
+  border-color: var(--app-accent);
+  background-position: right 0.15rem center;
+}
+
+body.theme-compact .form-check,
+.theme-compact .form-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 1.2rem;
+}
+
+body.theme-compact .form-check-label,
+.theme-compact .form-check-label {
+  font-size: 0.85rem;
+  line-height: 1.1;
+  margin-bottom: 0;
+}
+
+.theme-compact .input-group-text {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  border-radius: var(--app-radius-2);
+}
+
+.theme-compact .table-compact,
+.theme-compact .table-compact.table {
+  font-size: 0.85rem;
+}
+
+.theme-compact .table-compact > :not(caption) > * > * {
+  padding: 0.3rem 0.45rem;
+}
+
+.theme-compact .table > :not(caption) > * > * {
+  padding: 0.35rem 0.5rem;
+}
+
+.theme-compact .table thead th {
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+
+.theme-compact .table-responsive {
+  max-height: 360px;
+}
+
+.theme-compact .table-compact .table-responsive {
+  max-height: 340px;
+}
+
+.theme-compact .card,
+.theme-compact .viz-card,
+.theme-compact .query-header,
+.theme-compact .query-editor-body,
+.theme-compact .query-params-strip,
+.theme-compact .results-card {
+  border-radius: var(--app-radius-3);
+  box-shadow: none;
+}
+
+.theme-compact .query-header {
+  padding: var(--app-space-3);
+  margin-bottom: var(--app-space-3);
+}
+
+.theme-compact .query-params-strip {
+  padding: var(--app-space-2) var(--app-space-3);
+}
+
+.theme-compact .query-params-grid {
+  gap: var(--app-space-2);
+}
+
+.theme-compact .query-param-card {
+  padding: var(--app-space-2);
+  border-radius: var(--app-radius-3);
+}
+
+.theme-compact .query-editor-body {
+  padding: var(--app-space-3);
+  margin-bottom: var(--app-space-3);
+}
+
+.theme-compact .sql-editor-actions {
+  padding: 6px 8px;
+  gap: var(--app-space-2);
+  margin-bottom: var(--app-space-2);
+}
+
+.theme-compact .sql-editor-input {
+  padding: 8px 10px;
+  min-height: 190px;
+}
+
+.theme-compact .cm-host .cm-editor {
+  height: 300px;
+  font-size: 0.9rem;
+}
+
+.theme-compact .cm-host .cm-content {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.theme-compact .schema-table .list-group-item {
+  padding: 6px 10px;
+}
+
+.theme-compact .schema-column {
+  padding: 4px 10px 4px 26px;
+  font-size: 0.8rem;
+}
+
+.theme-compact .results-card .card-header {
+  padding: var(--app-space-2) var(--app-space-3);
+}
+
+.theme-compact .results-card .table-responsive {
+  max-height: 340px;
+}
+
+.theme-compact .dashboard-page {
+  padding: var(--app-space-3);
+  border-radius: var(--app-radius-3);
+  font-family: var(--app-font-sans);
+}
+
+.theme-compact .dashboard-widget {
+  border-radius: var(--app-radius-3);
+  box-shadow: none;
+}
+
+.theme-compact .dashboard-widget-header {
+  padding: 6px 10px;
+  min-height: 32px;
+}
+
+.theme-compact .dashboard-widget-body {
+  padding: var(--app-space-2) var(--app-space-3) var(--app-space-3);
+}
+
+.theme-compact .dashboard-parameter-bar {
+  padding: var(--app-space-2) var(--app-space-3);
+  gap: var(--app-space-2);
+}
+
+.theme-compact .dashboard-parameter-grid {
+  gap: var(--app-space-2);
+}
+
+.theme-compact .dashboard-parameter-field .form-label,
+.theme-compact .dashboard-inline-field .form-label {
+  font-size: 0.7rem;
+}
+
+.theme-compact .viz-editor {
+  padding: var(--app-space-4);
+}
+
+.theme-compact .viz-shell {
+  padding: var(--app-space-3);
+  border-radius: var(--app-radius-3);
+}
+
+.theme-compact .viz-body {
+  gap: var(--app-space-3);
+}
+
+.theme-compact .viz-config,
+.theme-compact .viz-preview {
+  padding: var(--app-space-3);
+  border-radius: var(--app-radius-3);
+}
+
+.theme-compact .viz-tabs .nav-link {
+  padding: 0.4rem 0.65rem;
+  font-size: 0.85rem;
+}
+
+.theme-compact .counter-visualization {
+  min-height: 170px;
+}
+
+.theme-compact .counter-value {
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+}
+
+.theme-compact .counter-target {
+  font-size: 1.1rem;
+}
+
+.theme-compact .counter-label {
+  font-size: 0.9rem;
+}
+
+.theme-compact .funnel-visualization .funnel-table {
+  font-size: 0.85rem;
+}
+
+.theme-compact .toast-container {
+  padding: var(--app-space-3);
+}
+
+.theme-compact .dropdown-menu {
+  font-size: 0.85rem;
+  border-radius: var(--app-radius-3);
+}
+
+.theme-compact .app-profile-btn {
+  border-radius: var(--app-radius-3);
+  padding: 0.25rem 0.5rem;
+}
+
+.theme-compact .app-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+}
+
+.theme-compact .sidebar .nav-link {
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--app-radius-2);
+}
+
+.theme-compact .sidebar .nav-link.active,
+.theme-compact .sidebar .nav-link:hover {
+  background-color: #eaf0ff;
+}
+
+.theme-compact .card:hover,
+.theme-compact .btn:active {
+  transform: none;
+}
+
+.theme-compact .empty-state,
+.theme-compact .dashboard-empty-card {
+  border-radius: var(--app-radius-3);
+  padding: var(--app-space-4);
+  box-shadow: none;
+}
+
+.theme-compact .home-page {
+  gap: var(--app-space-5);
+}
+
+.theme-compact .home-hero,
+.theme-compact .home-step-card,
+.theme-compact .home-feature-card,
+.theme-compact .home-callout,
+.theme-compact .home-mockup,
+.theme-compact .home-mockup-panel {
+  border-radius: var(--app-radius-3);
+  box-shadow: none;
+}
+
+.theme-compact .home-hero {
+  padding: var(--app-space-4);
+  gap: var(--app-space-4);
+}
+
+.theme-compact .home-section-title {
+  font-size: 1.1rem;
+  margin-bottom: var(--app-space-3);
+}
+
+.theme-compact .home-step-grid,
+.theme-compact .home-feature-grid {
+  gap: var(--app-space-3);
+}
+
+.theme-compact .home-step-card,
+.theme-compact .home-feature-card {
+  padding: var(--app-space-3);
+}
+
+.theme-compact .home-callout {
+  padding: var(--app-space-4);
+}
+
+.theme-compact .home-badge {
+  border-radius: var(--app-radius-2);
+  padding: 4px 8px;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.theme-compact .home-title {
+  font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+.theme-compact .home-subtitle {
+  font-size: 0.95rem;
+}
+
+.theme-compact .home-mockup-top {
+  margin-bottom: var(--app-space-2);
+}
+
+.theme-compact .home-mockup-body {
+  gap: var(--app-space-2);
+}
+
+.theme-compact .home-mockup-panel {
+  padding: var(--app-space-2);
+}
+
+.theme-compact .home-mockup-grid div {
+  height: 32px;
+  border-radius: var(--app-radius-2);
+}
+
+.theme-compact .dashboard-titlebar {
+  margin-bottom: var(--app-space-3);
+}
+
+.theme-compact .dashboard-widget-header {
+  background: #f8fafc;
+}
+
+.theme-compact .dashboard-widget-action {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--app-radius-2);
+}
+
+.theme-compact .dashboard-parameter-bar {
+  box-shadow: none;
+}
+
+.theme-compact .query-page,
+.theme-compact .dashboard-page {
+  background: #f8fafc;
+}
+
+.theme-compact .query-header,
+.theme-compact .query-editor-body,
+.theme-compact .query-params-strip,
+.theme-compact .results-card,
+.theme-compact .viz-card {
+  border: 1px solid var(--app-border);
+}
+
+.theme-compact .query-toolbar {
+  gap: var(--app-space-2);
+}
+
+.theme-compact .query-toolbar {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.theme-compact .query-section-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.theme-compact .query-params-title {
+  font-size: 0.85rem;
+}
+
+.theme-compact .query-param-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.theme-compact .query-params-actions {
+  margin-top: var(--app-space-2);
+}
+
+.theme-compact .query-editor-panel {
+  gap: var(--app-space-2);
+}
+
+.theme-compact .query-schema-panel {
+  gap: var(--app-space-2);
+  width: 280px;
+}
+
+.theme-compact .sql-editor-meta .btn-link {
+  font-size: 0.8rem;
+}
+
+.theme-compact .results-card .card-header {
+  gap: var(--app-space-2);
+}
+
+.theme-compact .results-card .nav-tabs .nav-link {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.theme-compact .results-card .card-body {
+  padding: var(--app-space-2) var(--app-space-3);
+}
+
+.theme-compact .home-workspace-grid {
+  gap: var(--app-space-3);
+}
+
+.theme-compact .home-workspace-card {
+  padding: var(--app-space-3);
+}
+
+.theme-compact .query-results-pager .form-select {
+  min-height: 28px;
+}
+
+.theme-compact .query-results-pager .btn-group .btn {
+  min-height: 26px;
+}
+
+.theme-compact .viz-tabs .nav-link {
+  border-radius: var(--app-radius-2);
+}
+
+.theme-compact .dashboard-grid {
+  border-radius: var(--app-radius-3);
+  border: 1px solid var(--app-divider);
+  background: #f8fafc;
+  padding: 6px;
+}
+
+.theme-compact .dashboard-grid-header {
+  border-radius: var(--app-radius-2);
+  padding: 6px 10px;
+  margin-bottom: var(--app-space-2);
+}
+.theme-compact .query-toolbar .btn-group .btn,
+.theme-compact .sql-editor-actions .btn {
+  min-height: 28px;
+}
+
+.theme-compact .sql-editor-actions {
+  border-radius: var(--app-radius-3);
+}
+
+.theme-compact .sql-editor-meta {
+  margin-bottom: var(--app-space-2);
+}
+
+.theme-compact .sql-editor {
+  border-radius: var(--app-radius-3);
+}
+
+.theme-compact .query-schema-panel {
+  border-radius: var(--app-radius-3);
+}
+
+.theme-compact .query-schema-list {
+  border-radius: var(--app-radius-3);
+  max-height: 380px;
+}
+
+.theme-compact .results-card .table thead th {
+  background: #f8fafc;
+}
+
+.theme-compact .results-card .card-body {
+  padding: var(--app-space-3);
+}
+
+.theme-compact .btn-compact {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.82rem;
+  min-height: 26px;
+  border-radius: var(--app-radius-2);
+}
+
+.theme-compact .input-compact {
+  min-height: 28px;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.82rem;
+  border-radius: var(--app-radius-2);
+}
+
+.theme-compact .card-compact {
+  padding: var(--app-space-3);
+  border-radius: var(--app-radius-3);
+  box-shadow: none;
+}
+
+.theme-compact .card-compact .card-body {
+  padding: var(--app-space-3);
+}
+
+.theme-compact .form-row-compact {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+  flex-wrap: wrap;
+}
+
+.theme-compact .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: var(--app-radius-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--app-border);
+  background: #f8fafc;
+  color: #334155;
+}
+
+.theme-compact .chip-positive {
+  border-color: rgba(22, 163, 74, 0.35);
+  color: #166534;
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.theme-compact .chip-negative {
+  border-color: rgba(220, 38, 38, 0.35);
+  color: #991b1b;
+  background: rgba(220, 38, 38, 0.08);
+}

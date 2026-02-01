@@ -19,6 +19,7 @@ public class ApplicationDbContext : IdentityDbContext
     public DbSet<DashboardWidget> DashboardWidgets => Set<DashboardWidget>();
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
+    public DbSet<FeatureFlag> FeatureFlags => Set<FeatureFlag>();
     public DbSet<Share> Shares => Set<Share>();
     public DbSet<PublicShare> PublicShares => Set<PublicShare>();
     public DbSet<QueryParameterDefinition> QueryParameterDefinitions => Set<QueryParameterDefinition>();
@@ -37,6 +38,15 @@ public class ApplicationDbContext : IdentityDbContext
         builder.Entity<GroupMember>(entity =>
         {
             entity.HasIndex(m => new { m.GroupId, m.UserId }).IsUnique();
+        });
+
+        builder.Entity<FeatureFlag>(entity =>
+        {
+            entity.Property(f => f.Key).HasMaxLength(100);
+            entity.Property(f => f.Description).HasMaxLength(500);
+            entity.Property(f => f.UpdatedBy).HasMaxLength(256);
+            entity.Property(f => f.RowVersion).IsRowVersion();
+            entity.HasIndex(f => f.Key).IsUnique();
         });
 
         builder.Entity<Share>(entity =>

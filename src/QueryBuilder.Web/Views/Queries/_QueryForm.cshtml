@@ -7,16 +7,16 @@
 <div class="query-header">
     <div class="query-title">
         <div class="query-section-label">Query details</div>
-        <input asp-for="Name" class="form-control form-control-lg query-title-input" placeholder="Untitled query" />
+        <input asp-for="Name" class="form-control input-compact query-title-input" placeholder="Untitled query" />
         <span asp-validation-for="Name" class="text-danger"></span>
-        <input asp-for="Description" class="form-control query-description-input" placeholder="Add a description" />
+        <input asp-for="Description" class="form-control input-compact query-description-input" placeholder="Add a description" />
         <span asp-validation-for="Description" class="text-danger"></span>
     </div>
     <div class="query-toolbar">
         <span class="badge text-bg-light border query-status">@statusText</span>
         <div class="btn-group">
-            <button class="btn btn-primary" type="submit" name="SubmitAction" value="run">Run Query</button>
-            <button class="btn btn-outline-secondary" type="submit" name="SubmitAction" value="save">Save</button>
+            <button class="btn btn-primary btn-compact" type="submit" name="SubmitAction" value="run">Run Query</button>
+            <button class="btn btn-outline-secondary btn-compact" type="submit" name="SubmitAction" value="save">Save</button>
         </div>
         <div class="form-check form-switch query-toggle">
             <input class="form-check-input" type="checkbox" id="showDataOnlyToggle" />
@@ -35,12 +35,12 @@
             <div class="query-section-label">Schema browser</div>
             <div class="mb-3">
                 <label asp-for="DataSourceId" class="form-label"></label>
-                <select asp-for="DataSourceId" class="form-select" asp-items="ViewBag.DataSources" id="dataSourceSelect"></select>
+                <select asp-for="DataSourceId" class="form-select input-compact" asp-items="ViewBag.DataSources" id="dataSourceSelect"></select>
                 <span asp-validation-for="DataSourceId" class="text-danger"></span>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="schemaSearch">Schema</label>
-                <input class="form-control" id="schemaSearch" placeholder="Search tables..." />
+                <input class="form-control input-compact" id="schemaSearch" placeholder="Search tables..." />
             </div>
             <div class="query-schema-list list-group" id="schemaList">
                 <div class="list-group-item text-muted">Select a data source to load tables.</div>
@@ -64,7 +64,7 @@
                     <div class="sql-editor-actions-left">
                         @if (Model.Id.HasValue)
                         {
-                            <button class="btn btn-sm btn-light"
+                            <button class="btn btn-sm btn-light btn-compact"
                                     type="button"
                                     data-bs-toggle="modal"
                                     data-bs-target="#addParameterModal"
@@ -75,7 +75,7 @@
                         }
                         else
                         {
-                            <button class="btn btn-sm btn-light"
+                            <button class="btn btn-sm btn-light btn-compact"
                                     type="button"
                                     disabled
                                     data-bs-toggle="tooltip"
@@ -83,14 +83,14 @@
                                 {{ }}
                             </button>
                         }
-                        <button class="btn btn-sm btn-light"
+                        <button class="btn btn-sm btn-light btn-compact"
                                 type="button"
                                 id="formatSqlBtn"
                                 data-bs-toggle="tooltip"
                                 data-bs-title="Format SQL">
                             <i class="bi bi-code-slash"></i>
                         </button>
-                        <button class="btn btn-sm btn-light"
+                        <button class="btn btn-sm btn-light btn-compact"
                                 type="button"
                                 id="toggleAutocompleteBtn"
                                 data-bs-toggle="tooltip"
@@ -99,8 +99,8 @@
                         </button>
                     </div>
                 <div class="sql-editor-actions-right">
-                    <button class="btn btn-sm btn-primary" type="button" id="runQueryInlineBtn">Run Query</button>
-                    <button class="btn btn-sm btn-outline-secondary" type="button" id="saveQueryInlineBtn">Save</button>
+                    <button class="btn btn-sm btn-primary btn-compact" type="button" id="runQueryInlineBtn">Run Query</button>
+                    <button class="btn btn-sm btn-outline-secondary btn-compact" type="button" id="saveQueryInlineBtn">Save</button>
                 </div>
             </div>
             <div class="sql-editor-meta">
@@ -110,13 +110,13 @@
                 <div class="query-section-label mb-0">Parameters</div>
                     @if (Model.Id.HasValue)
                     {
-                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#addParameterModal">
+                        <button class="btn btn-sm btn-outline-primary btn-compact" type="button" data-bs-toggle="modal" data-bs-target="#addParameterModal">
                             + Add Parameter
                         </button>
                     }
                     else
                     {
-                        <button class="btn btn-sm btn-outline-primary" type="button" disabled title="Save the query to configure parameter settings.">
+                        <button class="btn btn-sm btn-outline-primary btn-compact" type="button" disabled title="Save the query to configure parameter settings.">
                             + Add Parameter
                         </button>
                     }
@@ -177,16 +177,16 @@
                                 </li>
                             </ul>
                             <div class="d-flex align-items-center gap-2">
-                                <button class="btn btn-sm btn-outline-secondary" type="button" id="downloadCsvBtn">Download CSV</button>
+                                <button class="btn btn-sm btn-outline-secondary btn-compact" type="button" id="downloadCsvBtn">Download CSV</button>
                                 @if (Model.Id.HasValue && Model.Result.Success)
                                 {
-                                    <a class="btn btn-sm btn-primary @(Model.ShowEditVisualization ? "" : "d-none")"
+                                    <a class="btn btn-sm btn-primary btn-compact @(Model.ShowEditVisualization ? "" : "d-none")"
                                        data-edit-visualization-btn="true"
                                        asp-controller="Visualizations"
                                        asp-action="Create"
                                        asp-route-queryId="@Model.Id"
                                        asp-route-executionId="@Model.Result?.ExecutionId">Edit Visualization</a>
-                                    <a class="btn btn-sm @(Model.ShowEditVisualization ? "btn-outline-primary" : "btn-primary")"
+                                    <a class="btn btn-sm btn-compact @(Model.ShowEditVisualization ? "btn-outline-primary" : "btn-primary")"
                                        data-new-visualization-btn="true"
                                        asp-controller="Visualizations"
                                        asp-action="Create"
@@ -195,7 +195,7 @@
                                 }
                                 else
                                 {
-                                    <button class="btn btn-sm btn-primary" type="button" disabled title="Run and save the query before creating a visualization.">
+                                    <button class="btn btn-sm btn-primary btn-compact" type="button" disabled title="Run and save the query before creating a visualization.">
                                         + New Visualization
                                     </button>
                                 }
@@ -219,7 +219,7 @@
                                         <div class="text-muted small" data-page-status>Page 1</div>
                                         <div class="d-flex align-items-center gap-2">
                                             <label class="form-label mb-0 small">Rows per page</label>
-                                            <select class="form-select form-select-sm" data-page-size>
+                                            <select class="form-select form-select-sm input-compact" data-page-size>
                                                 <option value="25">25</option>
                                                 <option value="50">50</option>
                                                 <option value="100">100</option>
@@ -232,8 +232,8 @@
                                     <div data-page-table></div>
                                     <div class="d-flex justify-content-between align-items-center mt-2" data-page-controls>
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-secondary" type="button" data-page-prev>Prev</button>
-                                            <button class="btn btn-outline-secondary" type="button" data-page-next>Next</button>
+                                            <button class="btn btn-outline-secondary btn-compact" type="button" data-page-prev>Prev</button>
+                                            <button class="btn btn-outline-secondary btn-compact" type="button" data-page-next>Next</button>
                                         </div>
                                         <div class="text-muted small" data-page-info></div>
                                     </div>

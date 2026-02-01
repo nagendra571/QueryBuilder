@@ -1,0 +1,85 @@
+@model QueryBuilder.Web.Models.Admin.FeatureFlagsViewModel
+
+@{
+    ViewData["Title"] = "Feature Flags";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h3 mb-0">Feature Flags</h1>
+</div>
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-info">@statusMessage</div>
+}
+
+<div class="card mb-3">
+    <div class="card-header">
+        <strong>Create feature flag</strong>
+    </div>
+    <div class="card-body">
+        <form asp-action="CreateFeature" method="post" class="row g-3 align-items-end">
+            @Html.AntiForgeryToken()
+            <div class="col-md-4">
+                <label class="form-label">Key</label>
+                <input class="form-control" name="Key" placeholder="NewFeatureKey" />
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Description</label>
+                <input class="form-control" name="Description" placeholder="What does this toggle enable?" />
+            </div>
+            <div class="col-md-2">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="IsEnabled" value="true" id="create-flag-enabled" />
+                    <label class="form-check-label" for="create-flag-enabled">Enabled</label>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <button class="btn btn-primary w-100" type="submit">Add</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+            <tr>
+                <th>Key</th>
+                <th>Description</th>
+                <th>Enabled</th>
+                <th>Updated</th>
+                <th>Updated By</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var flag in Model.Flags)
+            {
+                <tr>
+                    <td class="fw-semibold">@flag.Key</td>
+                    <td class="text-muted">@flag.Description</td>
+                    <td>
+                        <form asp-action="UpdateFeature" method="post" class="d-flex align-items-center gap-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="key" value="@flag.Key" />
+                            <input type="hidden" name="rowVersion" value="@flag.RowVersion" />
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="isEnabled" value="true" id="flag-@flag.Key" @(flag.IsEnabled ? "checked" : "") />
+                                <label class="form-check-label" for="flag-@flag.Key">@((flag.IsEnabled) ? "On" : "Off")</label>
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm" type="submit">Save</button>
+                        </form>
+                    </td>
+                    <td class="text-muted">
+                        @(flag.UpdatedAt.HasValue ? flag.UpdatedAt.Value.ToLocalTime().ToString("g") : "—")
+                    </td>
+                    <td class="text-muted">@(!string.IsNullOrWhiteSpace(flag.UpdatedBy) ? flag.UpdatedBy : "—")</td>
+                    <td></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

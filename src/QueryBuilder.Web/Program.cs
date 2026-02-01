@@ -15,8 +15,11 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddDataProtection();
+builder.Services.AddMemoryCache();
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
+builder.Services.Configure<QueryBuilder.Web.Options.FeatureOptions>(
+    builder.Configuration.GetSection("Features"));
 builder.Services.AddScoped<QueryRunner>();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<SchemaBrowserService>();
@@ -28,6 +31,7 @@ builder.Services.AddScoped<FunnelVisualizationDataBuilder>();
 builder.Services.AddScoped<QueryExecutionPreviewService>();
 builder.Services.AddScoped<IQueryParameterService, QueryParameterService>();
 builder.Services.AddScoped<IVisualizationService, VisualizationService>();
+builder.Services.AddScoped<IFeatureFlagService, FeatureFlagService>();
 
 var app = builder.Build();
 
