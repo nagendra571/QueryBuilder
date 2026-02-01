@@ -25,7 +25,8 @@
     "light blue": "#38bdf8",
     teal: "#14b8a6",
     yellow: "#f59e0b",
-    gray: "#64748b"
+    gray: "#64748b",
+    slate: "#475569"
   };
 
   const normalizeType = (value, fallback) => {
@@ -352,6 +353,12 @@
     return colorMap[normalized] || value;
   };
 
+  const resolveNamedColor = (value) => {
+    if (!value) return null;
+    const normalized = String(value).toLowerCase();
+    return colorMap[normalized] || value;
+  };
+
   const formatCounterValue = (valueNumber, valueRaw, format, prefix, suffix) => {
     let output = "";
     if (typeof valueNumber === "number" && !Number.isNaN(valueNumber)) {
@@ -462,9 +469,11 @@
     valueEl.style.color = color || "";
   };
 
-  const formatPercent = (value) => {
+  const formatPercent = (value, precision, showSign) => {
     if (value === null || value === undefined || Number.isNaN(value)) return "";
-    return `${value.toFixed(2)}%`;
+    const digits = Number.isFinite(precision) ? precision : 2;
+    const text = value.toFixed(digits);
+    return showSign === false ? text : `${text}%`;
   };
 
   const renderFunnel = (containerId, payload) => {
@@ -488,6 +497,15 @@
     const rows = render.rows || [];
     const stepHeader = render.stepHeader || config?.stepDisplayName || "Steps";
     const valueHeader = render.valueHeader || config?.valueDisplayName || "Value";
+    const headerColor = resolveNamedColor(render.headerTextColor || null);
+    const valueBarHeight = Number.isFinite(render.valueBarHeight) ? render.valueBarHeight : 22;
+    const prevBarHeight = Number.isFinite(render.previousBarHeight) ? render.previousBarHeight : 18;
+    const barRadius = Number.isFinite(render.barRadius) ? render.barRadius : 3;
+    const showValueBar = render.showValueBar !== false;
+    const showPrevBar = render.showPreviousBar !== false;
+    const percentPrecision = Number.isFinite(render.percentPrecision) ? render.percentPrecision : 2;
+    const showPercentSign = render.showPercentSign !== false;
+    const capPrev = Number.isFinite(render.capPercentPrevious) ? render.capPercentPrevious : 250;
 
     const table = document.createElement("table");
     table.className = "table table-sm funnel-table";
@@ -496,6 +514,9 @@
     [stepHeader, valueHeader, "% Max", "% Previous"].forEach((label) => {
       const th = document.createElement("th");
       th.textContent = label;
+      if (headerColor) {
+        th.style.color = headerColor;
+      }
       headRow.appendChild(th);
     });
     thead.appendChild(headRow);
@@ -520,30 +541,46 @@
 
         const valueCell = document.createElement("td");
         valueCell.className = "funnel-value-cell";
-        const bar = document.createElement("div");
-        bar.className = "funnel-value-bar";
-        bar.style.width = `${Math.min(100, Math.max(0, row.percentMax || 0))}%`;
+        if (showValueBar) {
+          const bar = document.createElement("div");
+          bar.className = "funnel-value-bar";
+          bar.style.width = `${Math.min(100, Math.max(0, row.percentMax || 0))}%`;
+          bar.style.height = `${valueBarHeight}px`;
+          bar.style.borderRadius = `${barRadius}px`;
+          const barColor = resolveNamedColor(row.barColor);
+          if (barColor) {
+            bar.style.background = barColor;
+          }
+          valueCell.appendChild(bar);
+        }
         const valueText = document.createElement("span");
         valueText.className = "funnel-value-text";
-        valueText.textContent = formatNumber(row.value, "0,0");
-        valueCell.appendChild(bar);
+        valueText.textContent = row.valueText || formatNumber(row.value, "0,0");
         valueCell.appendChild(valueText);
         tr.appendChild(valueCell);
 
         const maxCell = document.createElement("td");
-        maxCell.textContent = formatPercent(row.percentMax || 0);
+        maxCell.textContent = row.percentMaxText || formatPercent(row.percentMax || 0, percentPrecision, showPercentSign);
         tr.appendChild(maxCell);
 
         const prevCell = document.createElement("td");
         prevCell.className = "funnel-prev-cell";
-        const prevBar = document.createElement("div");
-        prevBar.className = "funnel-prev-bar";
         const prevValue = row.percentPrevious || 0;
-        prevBar.style.width = `${Math.min(250, Math.max(0, prevValue))}%`;
+        if (showPrevBar) {
+          const prevBar = document.createElement("div");
+          prevBar.className = "funnel-prev-bar";
+          prevBar.style.width = `${Math.min(capPrev, Math.max(0, prevValue))}%`;
+          prevBar.style.height = `${prevBarHeight}px`;
+          prevBar.style.borderRadius = `${barRadius}px`;
+          const prevColor = resolveNamedColor(row.previousBarColor);
+          if (prevColor) {
+            prevBar.style.background = prevColor;
+          }
+          prevCell.appendChild(prevBar);
+        }
         const prevText = document.createElement("span");
         prevText.className = "funnel-prev-text";
-        prevText.textContent = formatPercent(prevValue);
-        prevCell.appendChild(prevBar);
+        prevText.textContent = row.percentPreviousText || formatPercent(prevValue, percentPrecision, showPercentSign);
         prevCell.appendChild(prevText);
         tr.appendChild(prevCell);
 
@@ -557,7 +594,13 @@
     if (render.truncated) {
       const note = document.createElement("div");
       note.className = "text-muted small mt-2";
-      note.textContent = "Showing first 50 rows.";
+      if (render.topN && render.topN > 0) {
+        note.textContent = render.includeOthers
+          ? `Showing top ${render.topN} plus Others.`
+          : `Showing top ${render.topN}.`;
+      } else {
+        note.textContent = "Showing first 50 rows.";
+      }
       container.appendChild(note);
     }
   };
