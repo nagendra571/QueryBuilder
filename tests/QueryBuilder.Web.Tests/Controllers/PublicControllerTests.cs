@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -44,7 +45,7 @@ public class PublicControllerTests
         {
             QueryId = query.Id,
             Name = "Chart",
-            Type = VisualizationType.Line,
+            Type = VisualizationType.Chart,
             ConfigJson = "{}",
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
@@ -85,7 +86,21 @@ public class PublicControllerTests
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var publicShareService = new PublicShareService(dbContext);
         var parameterService = new FakeQueryParameterService();
-        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance, parameterService, new TableVisualizationConfigBuilder());
+        var controller = new PublicController(
+            dbContext,
+            queryRunner,
+            publicShareService,
+            NullLogger<PublicController>.Instance,
+            parameterService,
+            new TableVisualizationConfigBuilder(),
+            new ChartVisualizationDataBuilder(),
+            new CounterVisualizationDataBuilder())
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
 
         var result = await controller.Dashboard("valid-token");
 
@@ -100,7 +115,21 @@ public class PublicControllerTests
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var publicShareService = new PublicShareService(dbContext);
         var parameterService = new FakeQueryParameterService();
-        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance, parameterService, new TableVisualizationConfigBuilder());
+        var controller = new PublicController(
+            dbContext,
+            queryRunner,
+            publicShareService,
+            NullLogger<PublicController>.Instance,
+            parameterService,
+            new TableVisualizationConfigBuilder(),
+            new ChartVisualizationDataBuilder(),
+            new CounterVisualizationDataBuilder())
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
 
         var result = await controller.Dashboard("missing-token");
 
@@ -127,7 +156,21 @@ public class PublicControllerTests
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var publicShareService = new PublicShareService(dbContext);
         var parameterService = new FakeQueryParameterService();
-        var controller = new PublicController(dbContext, queryRunner, publicShareService, NullLogger<PublicController>.Instance, parameterService, new TableVisualizationConfigBuilder());
+        var controller = new PublicController(
+            dbContext,
+            queryRunner,
+            publicShareService,
+            NullLogger<PublicController>.Instance,
+            parameterService,
+            new TableVisualizationConfigBuilder(),
+            new ChartVisualizationDataBuilder(),
+            new CounterVisualizationDataBuilder())
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
 
         var result = await controller.EmbedDashboard("disabled-token");
 

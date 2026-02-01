@@ -126,6 +126,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <script src="~/js/table-visualization-renderer.js" asp-append-version="true"></script>
     <script>
         const widgets = [];
@@ -149,13 +151,10 @@
                 autoRefreshInterval: @(widget.Visualization.AutoRefreshIntervalSeconds ?? 0),
                 columns: @Html.Raw(colsJson),
                 rows: @Html.Raw(rowsJson),
-                xColumn: "@(widget.Config.XColumn ?? string.Empty)",
-                yColumn: "@(widget.Config.YColumn ?? string.Empty)",
-                yColumns: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(widget.Config.YColumns)),
-                labelColumn: "@(widget.Config.LabelColumn ?? string.Empty)",
-                valueColumn: "@(widget.Config.ValueColumn ?? string.Empty)",
-                showLegend: @widget.Config.ShowLegend.ToString().ToLowerInvariant(),
-                lineInterpolationMode: "@(widget.Config.LineInterpolationMode ?? "default")",
+                chartConfig: @Html.Raw(JsonSerializer.Serialize(widget.ChartConfig, jsonOptions)),
+                chartRender: @Html.Raw(JsonSerializer.Serialize(widget.ChartRender, jsonOptions)),
+                counterConfig: @Html.Raw(JsonSerializer.Serialize(widget.CounterConfig, jsonOptions)),
+                counterRender: @Html.Raw(JsonSerializer.Serialize(widget.CounterRender, jsonOptions)),
                 tableConfig: @Html.Raw(JsonSerializer.Serialize(widget.TableConfig, jsonOptions))
             });
             </text>
@@ -193,6 +192,17 @@
                         allowUnsafeHtml: false
                     });
                 }
+            } else if (widget.visualizationType === "Counter") {
+                const counterHost = document.createElement('div');
+                counterHost.id = `viz-${widget.id}`;
+                counterHost.className = 'counter-visualization';
+                body.appendChild(counterHost);
+                window.queryBuilderViz.multi.push({
+                    canvasId: counterHost.id,
+                    type: widget.visualizationType,
+                    config: widget.counterConfig,
+                    render: widget.counterRender
+                });
             } else {
                 const canvas = document.createElement('canvas');
                 canvas.id = `viz-${widget.id}`;
@@ -200,15 +210,8 @@
                 window.queryBuilderViz.multi.push({
                     canvasId: canvas.id,
                     type: widget.visualizationType,
-                    columns: widget.columns,
-                    rows: widget.rows,
-                    xColumn: widget.xColumn,
-                    yColumn: widget.yColumn,
-                    yColumns: widget.yColumns,
-                    labelColumn: widget.labelColumn,
-                    valueColumn: widget.valueColumn,
-                    showLegend: widget.showLegend,
-                    lineInterpolationMode: widget.lineInterpolationMode
+                    config: widget.chartConfig,
+                    render: widget.chartRender
                 });
             }
 
@@ -257,6 +260,7 @@
                 autoRefreshInterval: widget.autoRefreshInterval,
                 endpoint: `/public/data/d/${publicToken}/w/${widget.id}`,
                 tableConfig: widget.tableConfig,
+                counterConfig: widget.counterConfig,
                 allowUnsafeHtml: false
             }))
         };

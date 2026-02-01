@@ -8,6 +8,18 @@
     var tableConfigJson = JsonSerializer.Serialize(
         Model.TableConfig ?? new QueryBuilder.Web.Models.Visualizations.TableVisualizationConfig(),
         new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    var chartConfigJson = JsonSerializer.Serialize(
+        Model.ChartConfig ?? new QueryBuilder.Web.Models.Visualizations.ChartVisualizationConfig(),
+        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    var chartRenderJson = JsonSerializer.Serialize(
+        Model.ChartRender ?? new QueryBuilder.Web.Models.Visualizations.ChartVisualizationRenderModel(),
+        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    var counterConfigJson = JsonSerializer.Serialize(
+        Model.CounterConfig ?? new QueryBuilder.Web.Models.Visualizations.CounterVisualizationConfig(),
+        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    var counterRenderJson = JsonSerializer.Serialize(
+        Model.CounterRender ?? new QueryBuilder.Web.Models.Visualizations.CounterVisualizationRenderModel(),
+        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 }
 
     <div class="viz-details-header d-flex align-items-center justify-content-between mb-3">
@@ -87,6 +99,14 @@ else
             </div>
         </div>
     }
+    else if (Model.Visualization.Type == QueryBuilder.Domain.Entities.VisualizationType.Counter)
+    {
+        <div class="card viz-card mb-3" id="viz-details-container" data-visualization-id="@Model.Visualization.Id" data-visualization-type="@Model.Visualization.Type">
+            <div class="card-body">
+                <div id="vizCounter" class="counter-visualization"></div>
+            </div>
+        </div>
+    }
     else
     {
         <div class="card viz-card mb-3" id="viz-details-container" data-visualization-id="@Model.Visualization.Id" data-visualization-type="@Model.Visualization.Type">
@@ -97,26 +117,25 @@ else
     }
 }
 
-@if (Model.Visualization.Type != QueryBuilder.Domain.Entities.VisualizationType.Table)
+@if (Model.Visualization.Type == QueryBuilder.Domain.Entities.VisualizationType.Counter)
 {
     <script>
         window.queryBuilderViz = window.queryBuilderViz || {};
         window.queryBuilderViz.details = {
             type: "@Model.Visualization.Type",
-            columns: @Html.Raw(columnsJson),
-            rows: @Html.Raw(dataJson),
-            xColumn: "@(Model.Config.XColumn ?? string.Empty)",
-            yColumn: "@(Model.Config.YColumn ?? string.Empty)",
-            yColumns: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Config.YColumns)),
-            useHorizontalBars: @Model.Config.UseHorizontalBars.ToString().ToLowerInvariant(),
-            useStackedBars: @Model.Config.UseStackedBars.ToString().ToLowerInvariant(),
-            useFloatingBars: @Model.Config.UseFloatingBars.ToString().ToLowerInvariant(),
-            rangeStartColumn: "@(Model.Config.RangeStartColumn ?? string.Empty)",
-            rangeEndColumn: "@(Model.Config.RangeEndColumn ?? string.Empty)",
-            labelColumn: "@(Model.Config.LabelColumn ?? string.Empty)",
-            valueColumn: "@(Model.Config.ValueColumn ?? string.Empty)",
-            showLegend: @Model.Config.ShowLegend.ToString().ToLowerInvariant(),
-            lineInterpolationMode: "@(Model.Config.LineInterpolationMode ?? "default")"
+            config: @Html.Raw(counterConfigJson),
+            render: @Html.Raw(counterRenderJson)
+        };
+    </script>
+}
+else if (Model.Visualization.Type != QueryBuilder.Domain.Entities.VisualizationType.Table)
+{
+    <script>
+        window.queryBuilderViz = window.queryBuilderViz || {};
+        window.queryBuilderViz.details = {
+            type: "@Model.Visualization.Type",
+            config: @Html.Raw(chartConfigJson),
+            render: @Html.Raw(chartRenderJson)
         };
     </script>
 }
@@ -135,6 +154,8 @@ else
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <script src="~/js/visualizations.js" asp-append-version="true"></script>
     <script src="~/js/table-visualization-renderer.js" asp-append-version="true"></script>
     <script src="~/js/paged-results.js" asp-append-version="true"></script>
