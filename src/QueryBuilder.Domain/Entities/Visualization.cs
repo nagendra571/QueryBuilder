@@ -7,7 +7,9 @@ public enum VisualizationType
     Bar = 3,
     Pie = 4,
     FloatingBar = 5,
-    HorizontalBar = 6
+    HorizontalBar = 6,
+    Chart = 7,
+    Counter = 8
 }
 
 public class Visualization

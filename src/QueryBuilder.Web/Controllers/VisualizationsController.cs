@@ -23,11 +23,24 @@ public class VisualizationsController : Controller
     private readonly PermissionService _permissionService;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly TableVisualizationConfigBuilder _tableConfigBuilder;
+    private readonly ChartVisualizationDataBuilder _chartDataBuilder;
+    private readonly CounterVisualizationDataBuilder _counterDataBuilder;
+    private readonly QueryExecutionPreviewService _executionPreviewService;
     private static readonly HashSet<int> AllowedRefreshIntervals = new()
     {
         30, 60, 300, 600, 1800, 3600
     };
     private static readonly JsonSerializerOptions TableConfigJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
+    private static readonly JsonSerializerOptions ChartConfigJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
+    private static readonly JsonSerializerOptions CounterConfigJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true
@@ -42,7 +55,10 @@ public class VisualizationsController : Controller
         IVisualizationService visualizationService,
         PermissionService permissionService,
         UserManager<IdentityUser> userManager,
-        TableVisualizationConfigBuilder tableConfigBuilder)
+        TableVisualizationConfigBuilder tableConfigBuilder,
+        ChartVisualizationDataBuilder chartDataBuilder,
+        CounterVisualizationDataBuilder counterDataBuilder,
+        QueryExecutionPreviewService executionPreviewService)
     {
         _dbContext = dbContext;
         _queryRunner = queryRunner;
@@ -52,6 +68,9 @@ public class VisualizationsController : Controller
         _permissionService = permissionService;
         _userManager = userManager;
         _tableConfigBuilder = tableConfigBuilder;
+        _chartDataBuilder = chartDataBuilder;
+        _counterDataBuilder = counterDataBuilder;
+        _executionPreviewService = executionPreviewService;
     }
 
     public async Task<IActionResult> Create(int queryId, int? executionId)
@@ -100,6 +119,7 @@ public class VisualizationsController : Controller
         {
             QueryId = query.Id,
             Name = $"{query.Name} Chart",
+            Type = VisualizationType.Chart,
             Columns = result.Columns,
             ShowLegend = true,
             IsAutoRefreshEnabled = false,
@@ -111,10 +131,12 @@ public class VisualizationsController : Controller
             ParameterDefinitions = definitions,
             ParameterValues = parameterValues,
             LatestExecutionId = await ResolveExecutionIdAsync(query.Id, executionId),
-            TableConfigJson = JsonSerializer.Serialize(_tableConfigBuilder.Build(result.Columns, result.Rows), TableConfigJsonOptions)
+            TableConfigJson = JsonSerializer.Serialize(_tableConfigBuilder.Build(result.Columns, result.Rows), TableConfigJsonOptions),
+            ChartConfigJson = JsonSerializer.Serialize(ChartVisualizationConfig.CreateDefault(), ChartConfigJsonOptions),
+            CounterConfigJson = JsonSerializer.Serialize(CounterVisualizationConfig.CreateDefault(), CounterConfigJsonOptions)
         };
 
-        ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
+        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter });
         return View(model);
     }
 
@@ -172,13 +194,25 @@ public class VisualizationsController : Controller
         }
 
         TableVisualizationConfig? tableConfig = null;
+        ChartVisualizationConfig? chartConfig = null;
+        CounterVisualizationConfig? counterConfig = null;
         if (model.Type == VisualizationType.Table)
         {
             tableConfig = BuildTableConfig(model, result);
             model.TableConfigJson = JsonSerializer.Serialize(tableConfig, TableConfigJsonOptions);
         }
+        else if (model.Type == VisualizationType.Counter)
+        {
+            counterConfig = TryDeserializeCounterConfig(model.CounterConfigJson) ?? CounterVisualizationConfig.CreateDefault();
+            model.CounterConfigJson = JsonSerializer.Serialize(counterConfig, CounterConfigJsonOptions);
+        }
+        else
+        {
+            chartConfig = TryDeserializeChartConfig(model.ChartConfigJson) ?? ChartVisualizationConfig.CreateDefault();
+            model.ChartConfigJson = JsonSerializer.Serialize(chartConfig, ChartConfigJsonOptions);
+        }
 
-        ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
+        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter });
 
         if (string.Equals(model.SubmitAction, "preview", StringComparison.OrdinalIgnoreCase))
         {
@@ -201,22 +235,9 @@ public class VisualizationsController : Controller
 
         var configJson = model.Type == VisualizationType.Table
             ? JsonSerializer.Serialize(tableConfig ?? BuildTableConfig(model, result), TableConfigJsonOptions)
-            : JsonSerializer.Serialize(new VisualizationConfig
-            {
-                XColumn = model.XColumn,
-                YColumn = model.YColumn,
-                YColumns = model.YColumns,
-                UseHorizontalBars = model.UseHorizontalBars || model.Type == VisualizationType.HorizontalBar,
-                UseStackedBars = model.UseStackedBars,
-                UseFloatingBars = model.UseFloatingBars || model.Type == VisualizationType.FloatingBar,
-                RangeStartColumn = model.RangeStartColumn,
-                RangeEndColumn = model.RangeEndColumn,
-                LabelColumn = model.LabelColumn,
-                ValueColumn = model.ValueColumn,
-                GroupByColumn = model.GroupByColumn,
-                ShowLegend = model.ShowLegend,
-                LineInterpolationMode = model.LineInterpolationMode
-            });
+            : model.Type == VisualizationType.Counter
+                ? JsonSerializer.Serialize(counterConfig ?? CounterVisualizationConfig.CreateDefault(), CounterConfigJsonOptions)
+                : JsonSerializer.Serialize(chartConfig ?? ChartVisualizationConfig.CreateDefault(), ChartConfigJsonOptions);
 
         var visualization = new Visualization
         {
@@ -280,7 +301,8 @@ public class VisualizationsController : Controller
         {
             result = await _queryRunner.RunAsync(visualization.Query.DataSourceId, applyResult.Sql);
         }
-        var config = JsonSerializer.Deserialize<VisualizationConfig>(visualization.ConfigJson) ?? new VisualizationConfig();
+        var chartConfig = TryDeserializeChartConfig(visualization.ConfigJson) ?? ChartVisualizationConfig.CreateDefault();
+        var counterConfig = TryDeserializeCounterConfig(visualization.ConfigJson) ?? CounterVisualizationConfig.CreateDefault();
         TableVisualizationConfig? tableConfig = null;
         if (visualization.Type == VisualizationType.Table)
         {
@@ -292,20 +314,11 @@ public class VisualizationsController : Controller
             Id = visualization.Id,
             QueryId = visualization.QueryId,
             Name = visualization.Name,
-            Type = visualization.Type,
-            XColumn = config.XColumn,
-            YColumn = config.YColumn,
-            YColumns = config.YColumns.Count > 0 ? config.YColumns : (string.IsNullOrWhiteSpace(config.YColumn) ? new List<string>() : new List<string> { config.YColumn }),
-            UseHorizontalBars = config.UseHorizontalBars || visualization.Type == VisualizationType.HorizontalBar,
-            UseStackedBars = config.UseStackedBars,
-            UseFloatingBars = config.UseFloatingBars || visualization.Type == VisualizationType.FloatingBar,
-            RangeStartColumn = config.RangeStartColumn,
-            RangeEndColumn = config.RangeEndColumn,
-            LabelColumn = config.LabelColumn,
-            ValueColumn = config.ValueColumn,
-            GroupByColumn = config.GroupByColumn,
-            ShowLegend = config.ShowLegend,
-            LineInterpolationMode = string.IsNullOrWhiteSpace(config.LineInterpolationMode) ? "default" : config.LineInterpolationMode,
+            Type = visualization.Type == VisualizationType.Table
+                ? VisualizationType.Table
+                : visualization.Type == VisualizationType.Counter
+                    ? VisualizationType.Counter
+                    : VisualizationType.Chart,
             Columns = result.Columns,
             IsAutoRefreshEnabled = visualization.IsAutoRefreshEnabled,
             AutoRefreshIntervalSeconds = visualization.AutoRefreshIntervalSeconds,
@@ -313,10 +326,12 @@ public class VisualizationsController : Controller
             ParameterValues = parameterValues,
             CanDelete = await CanDeleteVisualizationAsync(visualization.Query),
             LatestExecutionId = await GetLatestExecutionIdAsync(visualization.QueryId),
-            TableConfigJson = tableConfig != null ? JsonSerializer.Serialize(tableConfig, TableConfigJsonOptions) : null
+            TableConfigJson = tableConfig != null ? JsonSerializer.Serialize(tableConfig, TableConfigJsonOptions) : null,
+            ChartConfigJson = JsonSerializer.Serialize(chartConfig, ChartConfigJsonOptions),
+            CounterConfigJson = JsonSerializer.Serialize(counterConfig, CounterConfigJsonOptions)
         };
 
-        ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
+        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter });
         ViewData["Title"] = "Edit Visualization";
         return View("Create", model);
     }
@@ -382,13 +397,25 @@ public class VisualizationsController : Controller
         model.CanDelete = await CanDeleteVisualizationAsync(query);
 
         TableVisualizationConfig? tableConfig = null;
+        ChartVisualizationConfig? chartConfig = null;
+        CounterVisualizationConfig? counterConfig = null;
         if (model.Type == VisualizationType.Table)
         {
             tableConfig = BuildTableConfig(model, result);
             model.TableConfigJson = JsonSerializer.Serialize(tableConfig, TableConfigJsonOptions);
         }
+        else if (model.Type == VisualizationType.Counter)
+        {
+            counterConfig = TryDeserializeCounterConfig(model.CounterConfigJson) ?? CounterVisualizationConfig.CreateDefault();
+            model.CounterConfigJson = JsonSerializer.Serialize(counterConfig, CounterConfigJsonOptions);
+        }
+        else
+        {
+            chartConfig = TryDeserializeChartConfig(model.ChartConfigJson) ?? ChartVisualizationConfig.CreateDefault();
+            model.ChartConfigJson = JsonSerializer.Serialize(chartConfig, ChartConfigJsonOptions);
+        }
 
-        ViewData["VisualizationTypes"] = new SelectList(Enum.GetValues<VisualizationType>());
+        ViewData["VisualizationTypes"] = new SelectList(new[] { VisualizationType.Table, VisualizationType.Chart, VisualizationType.Counter });
         ViewData["Title"] = "Edit Visualization";
 
         if (string.Equals(model.SubmitAction, "preview", StringComparison.OrdinalIgnoreCase))
@@ -412,22 +439,9 @@ public class VisualizationsController : Controller
 
         var configJson = model.Type == VisualizationType.Table
             ? JsonSerializer.Serialize(tableConfig ?? BuildTableConfig(model, result), TableConfigJsonOptions)
-            : JsonSerializer.Serialize(new VisualizationConfig
-            {
-                XColumn = model.XColumn,
-                YColumn = model.YColumn,
-                YColumns = model.YColumns,
-                UseHorizontalBars = model.UseHorizontalBars || model.Type == VisualizationType.HorizontalBar,
-                UseStackedBars = model.UseStackedBars,
-                UseFloatingBars = model.UseFloatingBars || model.Type == VisualizationType.FloatingBar,
-                RangeStartColumn = model.RangeStartColumn,
-                RangeEndColumn = model.RangeEndColumn,
-                LabelColumn = model.LabelColumn,
-                ValueColumn = model.ValueColumn,
-                GroupByColumn = model.GroupByColumn,
-                ShowLegend = model.ShowLegend,
-                LineInterpolationMode = model.LineInterpolationMode
-            });
+            : model.Type == VisualizationType.Counter
+                ? JsonSerializer.Serialize(counterConfig ?? CounterVisualizationConfig.CreateDefault(), CounterConfigJsonOptions)
+                : JsonSerializer.Serialize(chartConfig ?? ChartVisualizationConfig.CreateDefault(), ChartConfigJsonOptions);
 
         visualization.Name = model.Name.Trim();
         visualization.Type = model.Type;
@@ -479,12 +493,23 @@ public class VisualizationsController : Controller
         {
             result = await _queryRunner.RunAsync(visualization.Query.DataSourceId, applyResult.Sql);
         }
-        var config = JsonSerializer.Deserialize<VisualizationConfig>(visualization.ConfigJson) ?? new VisualizationConfig();
+        var chartConfig = TryDeserializeChartConfig(visualization.ConfigJson) ?? ChartVisualizationConfig.CreateDefault();
+        var counterConfig = TryDeserializeCounterConfig(visualization.ConfigJson) ?? CounterVisualizationConfig.CreateDefault();
         TableVisualizationConfig? tableConfig = null;
         if (visualization.Type == VisualizationType.Table)
         {
             tableConfig = TryDeserializeTableConfig(visualization.ConfigJson);
             tableConfig = _tableConfigBuilder.Build(result.Columns, result.Rows, tableConfig);
+        }
+        ChartVisualizationRenderModel? chartRender = null;
+        CounterVisualizationRenderModel? counterRender = null;
+        if (visualization.Type == VisualizationType.Counter)
+        {
+            counterRender = _counterDataBuilder.Build(counterConfig, result.Columns, result.Rows);
+        }
+        else if (visualization.Type != VisualizationType.Table)
+        {
+            chartRender = _chartDataBuilder.Build(chartConfig, result.Columns, result.Rows);
         }
 
         var dashboards = await _dbContext.Dashboards
@@ -501,7 +526,10 @@ public class VisualizationsController : Controller
         {
             Visualization = visualization,
             Result = result,
-            Config = config,
+            ChartConfig = chartConfig,
+            ChartRender = chartRender,
+            CounterConfig = counterConfig,
+            CounterRender = counterRender,
             TableConfig = tableConfig,
             QueryName = visualization.Query.Name,
             Dashboards = dashboards
@@ -594,6 +622,31 @@ public class VisualizationsController : Controller
             {
                 success = false,
                 errorMessage = result.ErrorMessage ?? "Refresh failed."
+            });
+        }
+
+        if (visualization.Type == VisualizationType.Counter)
+        {
+            var counterConfig = TryDeserializeCounterConfig(visualization.ConfigJson) ?? CounterVisualizationConfig.CreateDefault();
+            var counterRender = _counterDataBuilder.Build(counterConfig, result.Columns, result.Rows);
+            return Ok(new
+            {
+                success = true,
+                columns = result.Columns,
+                rows = result.Rows,
+                counter = counterRender
+            });
+        }
+        if (visualization.Type != VisualizationType.Table)
+        {
+            var chartConfig = TryDeserializeChartConfig(visualization.ConfigJson) ?? ChartVisualizationConfig.CreateDefault();
+            var chartRender = _chartDataBuilder.Build(chartConfig, result.Columns, result.Rows);
+            return Ok(new
+            {
+                success = true,
+                columns = result.Columns,
+                rows = result.Rows,
+                chart = chartRender
             });
         }
 
@@ -722,6 +775,102 @@ public class VisualizationsController : Controller
         });
     }
 
+    [HttpPost("/visualizations/chart-preview")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChartPreview([FromBody] ChartPreviewRequest request)
+    {
+        if (request == null || request.QueryId <= 0)
+        {
+            return BadRequest();
+        }
+
+        if (!await _permissionService.CanViewQueryAsync(User, request.QueryId))
+        {
+            return Forbid();
+        }
+
+        var preview = await _executionPreviewService.GetLatestAsync(request.QueryId, request.ExecutionId, 500);
+        if (!preview.Success)
+        {
+            return Ok(new
+            {
+                success = false,
+                errorMessage = preview.ErrorMessage ?? "No execution results available."
+            });
+        }
+
+        var columns = preview.Columns.Select(c => c.Name).ToList();
+        var rows = preview.Rows.Select(row =>
+        {
+            var values = new List<string?>(columns.Count);
+            foreach (var column in columns)
+            {
+                row.TryGetValue(column, out var value);
+                values.Add(value);
+            }
+            return (IReadOnlyList<string?>)values;
+        }).ToList();
+
+        var config = request.Config ?? ChartVisualizationConfig.CreateDefault();
+        var render = _chartDataBuilder.Build(config, columns, rows);
+
+        return Ok(new
+        {
+            success = render.Success,
+            render,
+            errors = render.Errors,
+            warnings = render.Warnings
+        });
+    }
+
+    [HttpPost("/visualizations/counter-preview")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CounterPreview([FromBody] CounterPreviewRequest request)
+    {
+        if (request == null || request.QueryId <= 0)
+        {
+            return BadRequest();
+        }
+
+        if (!await _permissionService.CanViewQueryAsync(User, request.QueryId))
+        {
+            return Forbid();
+        }
+
+        var preview = await _executionPreviewService.GetLatestAsync(request.QueryId, request.ExecutionId, 500);
+        if (!preview.Success)
+        {
+            return Ok(new
+            {
+                success = false,
+                errorMessage = preview.ErrorMessage ?? "No execution results available."
+            });
+        }
+
+        var columns = preview.Columns.Select(c => c.Name).ToList();
+        var rows = preview.Rows.Select(row =>
+        {
+            var values = new List<string?>(columns.Count);
+            foreach (var column in columns)
+            {
+                row.TryGetValue(column, out var value);
+                values.Add(value);
+            }
+            return (IReadOnlyList<string?>)values;
+        }).ToList();
+
+        var config = request.Config ?? CounterVisualizationConfig.CreateDefault();
+        var render = _counterDataBuilder.Build(config, columns, rows);
+
+        return Ok(new
+        {
+            success = render.Success,
+            render,
+            errors = render.Errors,
+            warnings = render.Warnings
+        });
+    }
+
     private async Task<bool> CanDeleteVisualizationAsync(Query query)
     {
         if (User.IsInRole("Admin"))
@@ -790,6 +939,40 @@ public class VisualizationsController : Controller
         try
         {
             return JsonSerializer.Deserialize<TableVisualizationConfig>(json, TableConfigJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static ChartVisualizationConfig? TryDeserializeChartConfig(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<ChartVisualizationConfig>(json, ChartConfigJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static CounterVisualizationConfig? TryDeserializeCounterConfig(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<CounterVisualizationConfig>(json, CounterConfigJsonOptions);
         }
         catch (JsonException)
         {

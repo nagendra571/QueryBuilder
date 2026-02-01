@@ -20,7 +20,19 @@ public class PublicController : Controller
     private readonly ILogger<PublicController> _logger;
     private readonly IQueryParameterService _parameterService;
     private readonly TableVisualizationConfigBuilder _tableConfigBuilder;
+    private readonly ChartVisualizationDataBuilder _chartDataBuilder;
+    private readonly CounterVisualizationDataBuilder _counterDataBuilder;
     private static readonly JsonSerializerOptions TableConfigJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
+    private static readonly JsonSerializerOptions ChartConfigJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
+    private static readonly JsonSerializerOptions CounterConfigJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true
@@ -32,7 +44,9 @@ public class PublicController : Controller
         PublicShareService publicShareService,
         ILogger<PublicController> logger,
         IQueryParameterService parameterService,
-        TableVisualizationConfigBuilder tableConfigBuilder)
+        TableVisualizationConfigBuilder tableConfigBuilder,
+        ChartVisualizationDataBuilder chartDataBuilder,
+        CounterVisualizationDataBuilder counterDataBuilder)
     {
         _dbContext = dbContext;
         _queryRunner = queryRunner;
@@ -40,6 +54,8 @@ public class PublicController : Controller
         _logger = logger;
         _parameterService = parameterService;
         _tableConfigBuilder = tableConfigBuilder;
+        _chartDataBuilder = chartDataBuilder;
+        _counterDataBuilder = counterDataBuilder;
     }
 
     [HttpGet("public/d/{token}")]
@@ -143,6 +159,31 @@ public class PublicController : Controller
             });
         }
 
+        if (widget.Visualization.Type == VisualizationType.Counter)
+        {
+            var counterConfig = TryDeserializeCounterConfig(widget.Visualization.ConfigJson) ?? CounterVisualizationConfig.CreateDefault();
+            var counterRender = _counterDataBuilder.Build(counterConfig, result.Columns, result.Rows);
+            return Ok(new
+            {
+                success = true,
+                columns = result.Columns,
+                rows = result.Rows,
+                counter = counterRender
+            });
+        }
+        if (widget.Visualization.Type != VisualizationType.Table)
+        {
+            var chartConfig = TryDeserializeChartConfig(widget.Visualization.ConfigJson) ?? ChartVisualizationConfig.CreateDefault();
+            var chartRender = _chartDataBuilder.Build(chartConfig, result.Columns, result.Rows);
+            return Ok(new
+            {
+                success = true,
+                columns = result.Columns,
+                rows = result.Rows,
+                chart = chartRender
+            });
+        }
+
         return Ok(new
         {
             success = true,
@@ -227,19 +268,33 @@ public class PublicController : Controller
             {
                 result = await _queryRunner.RunAsync(widget.Visualization.Query.DataSourceId, applyResult.Sql);
             }
-            var config = JsonSerializer.Deserialize<VisualizationConfig>(widget.Visualization.ConfigJson) ?? new VisualizationConfig();
+            var chartConfig = TryDeserializeChartConfig(widget.Visualization.ConfigJson) ?? ChartVisualizationConfig.CreateDefault();
+            var counterConfig = TryDeserializeCounterConfig(widget.Visualization.ConfigJson) ?? CounterVisualizationConfig.CreateDefault();
             TableVisualizationConfig? tableConfig = null;
             if (widget.Visualization.Type == VisualizationType.Table)
             {
                 tableConfig = TryDeserializeTableConfig(widget.Visualization.ConfigJson);
                 tableConfig = _tableConfigBuilder.Build(result.Columns, result.Rows, tableConfig);
             }
+            ChartVisualizationRenderModel? chartRender = null;
+            CounterVisualizationRenderModel? counterRender = null;
+            if (widget.Visualization.Type == VisualizationType.Counter)
+            {
+                counterRender = _counterDataBuilder.Build(counterConfig, result.Columns, result.Rows);
+            }
+            else if (widget.Visualization.Type != VisualizationType.Table)
+            {
+                chartRender = _chartDataBuilder.Build(chartConfig, result.Columns, result.Rows);
+            }
 
             viewWidgets.Add(new DashboardWidgetViewModel
             {
                 Widget = widget,
                 Visualization = widget.Visualization,
-                Config = config,
+                ChartConfig = chartConfig,
+                ChartRender = chartRender,
+                CounterConfig = counterConfig,
+                CounterRender = counterRender,
                 TableConfig = tableConfig,
                 Result = result
             });
@@ -434,6 +489,40 @@ public class PublicController : Controller
         try
         {
             return JsonSerializer.Deserialize<TableVisualizationConfig>(json, TableConfigJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static ChartVisualizationConfig? TryDeserializeChartConfig(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<ChartVisualizationConfig>(json, ChartConfigJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static CounterVisualizationConfig? TryDeserializeCounterConfig(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<CounterVisualizationConfig>(json, CounterConfigJsonOptions);
         }
         catch (JsonException)
         {

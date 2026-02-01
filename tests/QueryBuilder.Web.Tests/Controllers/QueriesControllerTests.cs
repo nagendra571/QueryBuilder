@@ -422,12 +422,13 @@ public class QueriesControllerTests
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             });
+        dbContext.Users.Add(new IdentityUser { Id = "editor-1", UserName = "editor-1" });
         await dbContext.SaveChangesAsync();
 
         var dataProtectionProvider = DataProtectionProvider.Create("QueryBuilder.Tests");
         var queryRunner = new QueryRunner(dbContext, dataProtectionProvider);
         var schemaBrowser = new SchemaBrowserService(dbContext, dataProtectionProvider);
-        var userManager = UserManagerMockHelper.Create("editor-1");
+        var userManager = UserManagerMockHelper.Create("editor-1", dbContext);
         var permissionService = new PermissionService(dbContext, userManager.Object);
         var parameterService = new FakeQueryParameterService();
 

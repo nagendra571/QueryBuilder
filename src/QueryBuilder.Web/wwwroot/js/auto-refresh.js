@@ -165,18 +165,31 @@
       const body = container.querySelector(`[data-widget-body="${widget.widgetId}"]`) || container;
       if (widget.visualizationType === "Table") {
         renderTable(body, payload.columns || [], payload.rows || [], widget.tableConfig, widget.allowUnsafeHtml);
+      } else if (widget.visualizationType === "Counter") {
+        const hostId = widget.canvasId || "vizCounter";
+        const baseConfig = widget.counterConfig || window.queryBuilderViz?.details || {};
+        const render = window.queryBuilderViz?.renderCounter;
+        const counterRender = payload.counter || baseConfig.render || null;
+        const counterConfig = baseConfig.config || baseConfig;
+        if (typeof render === "function") {
+          render(hostId, {
+            type: widget.visualizationType,
+            config: counterConfig,
+            render: counterRender
+          });
+        }
       } else if (window.queryBuilderViz) {
         const canvasId = widget.canvasId || "vizChart";
-        window.queryBuilderViz.details = window.queryBuilderViz.details || {};
-        const baseConfig = widget.chartConfig || window.queryBuilderViz.details;
-        const merged = {
-          ...baseConfig,
-          columns: payload.columns || [],
-          rows: payload.rows || []
-        };
+        const baseConfig = widget.chartConfig || window.queryBuilderViz.details || {};
         const render = window.queryBuilderViz?.renderChart;
+        const chartRender = payload.chart || baseConfig.render || null;
+        const chartConfig = baseConfig.config || baseConfig;
         if (typeof render === "function") {
-          render(canvasId, merged);
+          render(canvasId, {
+            type: widget.visualizationType,
+            config: chartConfig,
+            render: chartRender
+          });
         }
       }
     } catch (err) {
@@ -227,16 +240,18 @@
 
   const widgets = [];
   if (config.mode === "visualization") {
+    const vizType = document.getElementById("viz-details-container")?.dataset?.visualizationType || "Line";
     widgets.push({
       key: `viz-${config.visualizationId}`,
       widgetId: config.visualizationId,
-      visualizationType: document.getElementById("viz-details-container")?.dataset?.visualizationType || "Line",
+      visualizationType: vizType,
       autoRefreshEnabled: config.autoRefreshEnabled,
       autoRefreshInterval: config.autoRefreshInterval,
       endpoint: config.endpoint,
       mode: "visualization",
-      canvasId: "vizChart",
+      canvasId: vizType === "Counter" ? "vizCounter" : "vizChart",
       chartConfig: window.queryBuilderViz?.details,
+      counterConfig: window.queryBuilderViz?.details,
       tableConfig: window.queryBuilderTable?.details?.config,
       allowUnsafeHtml: window.queryBuilderTable?.details?.allowUnsafeHtml === true
     });

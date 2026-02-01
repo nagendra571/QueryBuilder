@@ -38,6 +38,8 @@
                 <input type="hidden" asp-for="QueryId" />
                 <input type="hidden" asp-for="LatestExecutionId" />
                 <input type="hidden" asp-for="TableConfigJson" />
+                <input type="hidden" asp-for="ChartConfigJson" />
+                <input type="hidden" asp-for="CounterConfigJson" />
 
                 <partial name="_VisualizationParameters" model="Model" />
 
@@ -80,10 +82,6 @@
                     <select asp-for="Type" class="form-select" asp-items="ViewBag.VisualizationTypes"></select>
                     <span asp-validation-for="Type" class="text-danger"></span>
                 </div>
-                <div class="form-check mb-3" id="showLegendRow">
-                    <input asp-for="ShowLegend" class="form-check-input" />
-                    <label asp-for="ShowLegend" class="form-check-label"></label>
-                </div>
                 <div class="border rounded-3 p-3 bg-light mb-3" id="autoRefreshPanel">
                     <div class="form-check form-switch mb-2">
                         <input asp-for="IsAutoRefreshEnabled" class="form-check-input" id="autoRefreshToggle" />
@@ -109,6 +107,9 @@
 
                 <ul class="nav nav-tabs viz-tabs mb-3" role="tablist">
                     <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizGeneral" type="button" role="tab" data-viz-tab="chart">General</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizXAxis" type="button" role="tab" data-viz-tab="chart">X Axis</button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -116,6 +117,18 @@
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizSeries" type="button" role="tab" data-viz-tab="chart">Series</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizColors" type="button" role="tab" data-viz-tab="chart">Colors</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizDataLabels" type="button" role="tab" data-viz-tab="chart">Data Labels</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizCounterGeneral" type="button" role="tab" data-viz-tab="counter">General</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizCounterFormat" type="button" role="tab" data-viz-tab="counter">Format</button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vizTableColumns" type="button" role="tab" data-viz-tab="table">Columns</button>
@@ -126,11 +139,46 @@
                 </ul>
 
                 <div class="tab-content">
-                    <div class="tab-pane fade" id="vizXAxis" role="tabpanel">
+                    <div class="tab-pane fade" id="vizGeneral" role="tabpanel">
                         <div class="mb-3">
-                            <label asp-for="XColumn" class="form-label"></label>
-                            <select asp-for="XColumn" class="form-select">
-                                <option value="">--</option>
+                            <label class="form-label" for="chartTypeSelect">Chart Type</label>
+                            <select class="form-select" id="chartTypeSelect">
+                                <option value="">Choose chart type...</option>
+                                <option value="line">Line</option>
+                                <option value="bar">Bar</option>
+                                <option value="area">Area</option>
+                                <option value="pie">Pie</option>
+                                <option value="scatter">Scatter</option>
+                                <option value="bubble">Bubble</option>
+                                <option value="heatmap">Heatmap</option>
+                                <option value="box">Box</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="chartXColumnSelect">X Column</label>
+                            <select class="form-select" id="chartXColumnSelect">
+                                <option value="">Choose column...</option>
+                                @foreach (var column in columns)
+                                {
+                                    <option value="@column">@column</option>
+                                }
+                            </select>
+                            <div class="text-danger small d-none" id="chartXColumnError">X column is required.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="chartYColumnsSelect">Y Columns</label>
+                            <select class="form-select" multiple size="6" id="chartYColumnsSelect">
+                                @foreach (var column in columns)
+                                {
+                                    <option value="@column">@column</option>
+                                }
+                            </select>
+                            <div class="text-danger small d-none" id="chartYColumnsError">Select at least one Y column.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="chartGroupBySelect">Group By</label>
+                            <select class="form-select" id="chartGroupBySelect">
+                                <option value="">Choose column...</option>
                                 @foreach (var column in columns)
                                 {
                                     <option value="@column">@column</option>
@@ -138,80 +186,189 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label asp-for="GroupByColumn" class="form-label"></label>
-                            <select asp-for="GroupByColumn" class="form-select">
-                                <option value="">--</option>
+                            <label class="form-label" for="chartErrorsSelect">Errors Column</label>
+                            <select class="form-select" id="chartErrorsSelect">
+                                <option value="">Choose column...</option>
                                 @foreach (var column in columns)
                                 {
                                     <option value="@column">@column</option>
                                 }
                             </select>
-                            <div class="form-text">Optional. Stored for future grouping logic.</div>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="chartShowLegend">
+                            <label class="form-check-label" for="chartShowLegend">Show Legend</label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="chartStackingSelect">Stacking</label>
+                            <select class="form-select" id="chartStackingSelect">
+                                <option value="disabled">Disabled</option>
+                                <option value="stack">Stack</option>
+                            </select>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="chartNormalizeToPercent">
+                            <label class="form-check-label" for="chartNormalizeToPercent">Normalize values to percentage</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="chartNullAsZero">
+                            <label class="form-check-label" for="chartNullAsZero">Treat missing/null values as 0</label>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="vizXAxis" role="tabpanel">
+                        <div class="mb-3">
+                            <label class="form-label" for="chartXAxisScale">Scale</label>
+                            <select class="form-select" id="chartXAxisScale">
+                                <option value="auto">Auto Detect</option>
+                                <option value="datetime">Datetime</option>
+                                <option value="linear">Linear</option>
+                                <option value="logarithmic">Logarithmic</option>
+                                <option value="category">Category</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="chartXAxisName">Name</label>
+                            <input class="form-control" id="chartXAxisName" type="text" />
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="chartSortValues">
+                            <label class="form-check-label" for="chartSortValues">Sort Values</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="chartReverseOrder">
+                            <label class="form-check-label" for="chartReverseOrder">Reverse Order</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="chartShowLabels">
+                            <label class="form-check-label" for="chartShowLabels">Show Labels</label>
                         </div>
                     </div>
                     <div class="tab-pane fade" id="vizYAxis" role="tabpanel">
-                        <div class="border rounded-3 p-3 bg-light mb-3 @(Model.Type == QueryBuilder.Domain.Entities.VisualizationType.Bar || Model.Type == QueryBuilder.Domain.Entities.VisualizationType.FloatingBar || Model.Type == QueryBuilder.Domain.Entities.VisualizationType.HorizontalBar ? "" : "d-none")" id="floatingBarSettings">
-                            <div class="form-check form-switch mb-2">
-                                <input asp-for="UseHorizontalBars" class="form-check-input" id="horizontalBarsToggle" />
-                                <label asp-for="UseHorizontalBars" class="form-check-label"></label>
+                        <div class="border rounded-3 p-3 bg-light mb-4">
+                            <div class="fw-semibold mb-2">Left Y Axis</div>
+                            <div class="mb-3">
+                                <label class="form-label" for="chartYAxisLeftScale">Scale</label>
+                                <select class="form-select" id="chartYAxisLeftScale">
+                                    <option value="linear">Linear</option>
+                                    <option value="logarithmic">Logarithmic</option>
+                                    <option value="datetime">Datetime</option>
+                                    <option value="category">Category</option>
+                                </select>
                             </div>
-                            <div class="form-check form-switch mb-2">
-                                <input asp-for="UseStackedBars" class="form-check-input" id="stackedBarsToggle" />
-                                <label asp-for="UseStackedBars" class="form-check-label"></label>
+                            <div class="mb-3">
+                                <label class="form-label" for="chartYAxisLeftName">Name</label>
+                                <input class="form-control" id="chartYAxisLeftName" type="text" />
                             </div>
-                            <div class="form-check form-switch mb-2">
-                                <input asp-for="UseFloatingBars" class="form-check-input" id="floatingBarsToggle" />
-                                <label asp-for="UseFloatingBars" class="form-check-label"></label>
+                            <div class="mb-3">
+                                <label class="form-label" for="chartYAxisLeftMin">Min Value</label>
+                                <input class="form-control" id="chartYAxisLeftMin" type="text" placeholder="Auto" />
                             </div>
-                            <div class="row g-2">
-                                <div class="col-md-6">
-                                    <label asp-for="RangeStartColumn" class="form-label"></label>
-                                    <select asp-for="RangeStartColumn" class="form-select">
-                                        <option value="">--</option>
-                                        @foreach (var column in columns)
-                                        {
-                                            <option value="@column">@column</option>
-                                        }
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label asp-for="RangeEndColumn" class="form-label"></label>
-                                    <select asp-for="RangeEndColumn" class="form-select">
-                                        <option value="">--</option>
-                                        @foreach (var column in columns)
-                                        {
-                                            <option value="@column">@column</option>
-                                        }
-                                    </select>
-                                </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="chartYAxisLeftMax">Max Value</label>
+                                <input class="form-control" id="chartYAxisLeftMax" type="text" placeholder="Auto" />
                             </div>
-                            <div class="form-text">Use two columns to render floating bar ranges.</div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="chartYAxisLeftReverse">
+                                <label class="form-check-label" for="chartYAxisLeftReverse">Reverse Order</label>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label asp-for="YColumns" class="form-label"></label>
-                            <select asp-for="YColumns" class="form-select" multiple size="6" id="yColumnsSelect">
-                                @foreach (var column in columns)
-                                {
-                                    <option value="@column" selected="@(Model.YColumns.Contains(column) ? "selected" : null)">@column</option>
-                                }
-                            </select>
-                            <div class="form-text">Select one or more series.</div>
+                        <div class="border rounded-3 p-3 bg-light">
+                            <div class="fw-semibold mb-2">Right Y Axis</div>
+                            <div class="mb-3">
+                                <label class="form-label" for="chartYAxisRightScale">Scale</label>
+                                <select class="form-select" id="chartYAxisRightScale">
+                                    <option value="linear">Linear</option>
+                                    <option value="logarithmic">Logarithmic</option>
+                                    <option value="datetime">Datetime</option>
+                                    <option value="category">Category</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="chartYAxisRightName">Name</label>
+                                <input class="form-control" id="chartYAxisRightName" type="text" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="chartYAxisRightMin">Min Value</label>
+                                <input class="form-control" id="chartYAxisRightMin" type="text" placeholder="Auto" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="chartYAxisRightMax">Max Value</label>
+                                <input class="form-control" id="chartYAxisRightMax" type="text" placeholder="Auto" />
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="chartYAxisRightReverse">
+                                <label class="form-check-label" for="chartYAxisRightReverse">Reverse Order</label>
+                            </div>
                         </div>
                     </div>
                     <div class="tab-pane fade" id="vizSeries" role="tabpanel">
-                        <div class="border rounded-3 p-3 bg-light mb-3 @(Model.Type == QueryBuilder.Domain.Entities.VisualizationType.Line ? "" : "d-none")" id="lineInterpolationPanel">
-                            <label asp-for="LineInterpolationMode" class="form-label"></label>
-                            <select asp-for="LineInterpolationMode" class="form-select" id="lineInterpolationSelect">
-                                <option value="default">Default</option>
-                                <option value="monotone">Monotone</option>
-                                <option value="linear">Linear</option>
-                            </select>
-                            <div class="form-text">Controls how line segments are interpolated between points.</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle" id="chartSeriesTable">
+                                <thead>
+                                <tr>
+                                    <th style="width: 90px;">zIndex</th>
+                                    <th style="width: 120px;">Left Y Axis</th>
+                                    <th style="width: 120px;">Right Y Axis</th>
+                                    <th>Label</th>
+                                    <th style="width: 160px;">Type</th>
+                                </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="text-muted d-none" id="chartSeriesEmpty">Run the query to load series.</div>
+                    </div>
+                    <div class="tab-pane fade" id="vizColors" role="tabpanel">
+                        <div id="chartColorsList" class="d-flex flex-column gap-2"></div>
+                        <div class="text-muted d-none" id="chartColorsEmpty">No series available.</div>
+                    </div>
+                    <div class="tab-pane fade" id="vizDataLabels" role="tabpanel">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="chartDataLabelsEnabled">
+                            <label class="form-check-label" for="chartDataLabelsEnabled">Show Data Labels</label>
                         </div>
                         <div class="mb-3">
-                            <label asp-for="LabelColumn" class="form-label"></label>
-                            <select asp-for="LabelColumn" class="form-select">
-                                <option value="">--</option>
+                            <label class="form-label" for="chartDataLabelsNumberFormat">Number Values Format</label>
+                            <input class="form-control" id="chartDataLabelsNumberFormat" type="text" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="chartDataLabelsPercentFormat">Percent Values Format</label>
+                            <input class="form-control" id="chartDataLabelsPercentFormat" type="text" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="chartDataLabelsDateFormat">Date/Time Values Format</label>
+                            <input class="form-control" id="chartDataLabelsDateFormat" type="text" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="chartDataLabelsTemplate">Data Labels</label>
+                            <input class="form-control" id="chartDataLabelsTemplate" type="text" placeholder="auto" />
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="vizCounterGeneral" role="tabpanel">
+                        <div class="mb-3">
+                            <label class="form-label" for="counterLabel">Counter Label</label>
+                            <input class="form-control" id="counterLabel" type="text" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="counterValueColumn">Counter Value Column Name</label>
+                            <select class="form-select" id="counterValueColumn">
+                                <option value="">Choose column...</option>
+                                @foreach (var column in columns)
+                                {
+                                    <option value="@column">@column</option>
+                                }
+                            </select>
+                            <div class="text-danger small d-none" id="counterValueColumnError">Counter value column is required.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="counterValueRow">Counter Value Row Number</label>
+                            <input class="form-control" id="counterValueRow" type="number" min="1" />
+                            <div class="text-danger small d-none" id="counterValueRowError">Row number must be at least 1.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="counterTargetColumn">Target Value Column Name</label>
+                            <select class="form-select" id="counterTargetColumn">
+                                <option value="">Choose column...</option>
                                 @foreach (var column in columns)
                                 {
                                     <option value="@column">@column</option>
@@ -219,13 +376,46 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label asp-for="ValueColumn" class="form-label"></label>
-                            <select asp-for="ValueColumn" class="form-select">
-                                <option value="">--</option>
-                                @foreach (var column in columns)
-                                {
-                                    <option value="@column">@column</option>
-                                }
+                            <label class="form-label" for="counterTargetRow">Target Value Row Number</label>
+                            <input class="form-control" id="counterTargetRow" type="number" min="1" />
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="counterCountRows">
+                            <label class="form-check-label" for="counterCountRows">Count Rows</label>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="vizCounterFormat" role="tabpanel">
+                        <div class="mb-3">
+                            <label class="form-label" for="counterNumberFormat">Number Format</label>
+                            <input class="form-control" id="counterNumberFormat" type="text" />
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="counterShowTarget">
+                            <label class="form-check-label" for="counterShowTarget">Show Target</label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="counterPrefix">Prefix</label>
+                            <input class="form-control" id="counterPrefix" type="text" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="counterSuffix">Suffix</label>
+                            <input class="form-control" id="counterSuffix" type="text" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="counterPositiveColor">Positive Color</label>
+                            <select class="form-select" id="counterPositiveColor">
+                                <option value="green">Green</option>
+                                <option value="blue">Blue</option>
+                                <option value="teal">Teal</option>
+                                <option value="gray">Gray</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="counterNegativeColor">Negative Color</label>
+                            <select class="form-select" id="counterNegativeColor">
+                                <option value="red">Red</option>
+                                <option value="orange">Orange</option>
+                                <option value="gray">Gray</option>
                             </select>
                         </div>
                     </div>
@@ -316,16 +506,22 @@
                     </div>
                 </div>
                 <div id="chartVizPreview" class="d-none">
-                    @if (Model.Result != null && Model.Result.Success)
-                    {
-                        <partial name="_VisualizationPreview" model="Model" />
-                    }
-                    else
-                    {
-                        <div class="viz-preview-empty">
-                            <div class="text-muted">Run a preview to see your chart here.</div>
-                        </div>
-                    }
+                    <div class="viz-preview-empty d-none" id="chartPreviewEmpty">
+                        <div class="text-muted">Run the query to see your chart here.</div>
+                    </div>
+                    <div id="chartPreviewLoading" class="text-muted small mb-2 d-none">Loading preview...</div>
+                    <div id="chartPreviewErrors" class="text-danger small mb-2 d-none"></div>
+                    <div id="chartPreviewWarnings" class="text-warning small mb-2 d-none"></div>
+                    <partial name="_VisualizationPreview" model="Model" />
+                </div>
+                <div id="counterVizPreview" class="d-none">
+                    <div class="viz-preview-empty d-none" id="counterPreviewEmpty">
+                        <div class="text-muted">Run the query to see your counter here.</div>
+                    </div>
+                    <div id="counterPreviewLoading" class="text-muted small mb-2 d-none">Loading preview...</div>
+                    <div id="counterPreviewErrors" class="text-danger small mb-2 d-none"></div>
+                    <div id="counterPreviewWarnings" class="text-warning small mb-2 d-none"></div>
+                    <div id="counterPreviewDisplay" class="counter-visualization"></div>
                 </div>
             </div>
         </div>
@@ -358,7 +554,11 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <script src="~/js/visualizations.js" asp-append-version="true"></script>
+    <script src="~/js/chart-visualization-editor.js" asp-append-version="true"></script>
+    <script src="~/js/counter-visualization-editor.js" asp-append-version="true"></script>
     <script src="~/js/table-visualization-editor.js" asp-append-version="true"></script>
     <script>
         const autoRefreshToggle = document.getElementById('autoRefreshToggle');
@@ -376,56 +576,12 @@
     </script>
     <script>
         const typeSelect = document.getElementById('Type');
-        const floatingToggle = document.getElementById('floatingBarsToggle');
-        const floatingPanel = document.getElementById('floatingBarSettings');
-        const horizontalToggle = document.getElementById('horizontalBarsToggle');
-        const stackedToggle = document.getElementById('stackedBarsToggle');
-        const yColumnsSelect = document.getElementById('yColumnsSelect');
-        const lineInterpolationPanel = document.getElementById('lineInterpolationPanel');
-        const lineInterpolationSelect = document.getElementById('lineInterpolationSelect');
-        const showLegendRow = document.getElementById('showLegendRow');
         const chartPreview = document.getElementById('chartVizPreview');
+        const counterPreview = document.getElementById('counterVizPreview');
         const tablePreview = document.getElementById('tableVizPreview');
         const chartTabs = document.querySelectorAll('[data-viz-tab="chart"]');
+        const counterTabs = document.querySelectorAll('[data-viz-tab="counter"]');
         const tableTabs = document.querySelectorAll('[data-viz-tab="table"]');
-
-        const updateFloatingState = () => {
-            if (!typeSelect || !floatingPanel || !floatingToggle || !horizontalToggle || !stackedToggle) return;
-            const type = typeSelect.value;
-            const isBarFamily = type === 'Bar' || type === 'FloatingBar' || type === 'HorizontalBar';
-            floatingPanel.classList.toggle('d-none', !isBarFamily);
-            if (lineInterpolationPanel) {
-                lineInterpolationPanel.classList.toggle('d-none', type !== 'Line');
-                if (type !== 'Line' && lineInterpolationSelect) {
-                    lineInterpolationSelect.value = 'default';
-                }
-            }
-            if (!isBarFamily) {
-                horizontalToggle.checked = false;
-                horizontalToggle.disabled = false;
-                stackedToggle.checked = false;
-                stackedToggle.disabled = true;
-                floatingToggle.checked = false;
-                floatingToggle.disabled = false;
-                if (yColumnsSelect) yColumnsSelect.disabled = false;
-                return;
-            }
-
-            if (type === 'FloatingBar') {
-                floatingToggle.checked = true;
-                floatingToggle.disabled = true;
-            } else {
-                floatingToggle.disabled = false;
-            }
-            if (type === 'HorizontalBar') {
-                horizontalToggle.checked = true;
-                horizontalToggle.disabled = true;
-            } else {
-                horizontalToggle.disabled = false;
-            }
-            stackedToggle.disabled = false;
-            if (yColumnsSelect) yColumnsSelect.disabled = floatingToggle.checked;
-        };
 
         const setActiveTab = (targetId) => {
             const target = document.querySelector(`[data-bs-target='${targetId}']`);
@@ -443,30 +599,23 @@
         const updateTabVisibility = () => {
             if (!typeSelect) return;
             const isTable = typeSelect.value === 'Table';
-            chartTabs.forEach((tab) => tab.classList.toggle('d-none', isTable));
+            const isCounter = typeSelect.value === 'Counter';
+            chartTabs.forEach((tab) => tab.classList.toggle('d-none', isTable || isCounter));
+            counterTabs.forEach((tab) => tab.classList.toggle('d-none', !isCounter));
             tableTabs.forEach((tab) => tab.classList.toggle('d-none', !isTable));
-            if (showLegendRow) {
-                showLegendRow.classList.toggle('d-none', isTable);
-            }
             if (chartPreview) {
-                chartPreview.classList.toggle('d-none', isTable);
+                chartPreview.classList.toggle('d-none', isTable || isCounter);
+            }
+            if (counterPreview) {
+                counterPreview.classList.toggle('d-none', !isCounter);
             }
             if (tablePreview) {
                 tablePreview.classList.toggle('d-none', !isTable);
             }
-            if (isTable) {
-                setActiveTab('#vizTableColumns');
-            } else {
-                setActiveTab('#vizXAxis');
-            }
+            setActiveTab(isTable ? '#vizTableColumns' : isCounter ? '#vizCounterGeneral' : '#vizGeneral');
         };
 
-        typeSelect?.addEventListener('change', updateFloatingState);
         typeSelect?.addEventListener('change', updateTabVisibility);
-        floatingToggle?.addEventListener('change', updateFloatingState);
-        horizontalToggle?.addEventListener('change', updateFloatingState);
-        stackedToggle?.addEventListener('change', updateFloatingState);
-        updateFloatingState();
         updateTabVisibility();
     </script>
     @if (Model.Id.HasValue && Model.CanDelete)

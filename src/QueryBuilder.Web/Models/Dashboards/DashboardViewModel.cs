@@ -20,7 +20,10 @@ public class DashboardWidgetViewModel
 {
     public DashboardWidget Widget { get; set; } = new();
     public Visualization Visualization { get; set; } = new();
-    public VisualizationConfig Config { get; set; } = new();
+    public ChartVisualizationConfig ChartConfig { get; set; } = new();
+    public ChartVisualizationRenderModel? ChartRender { get; set; }
+    public CounterVisualizationConfig CounterConfig { get; set; } = new();
+    public CounterVisualizationRenderModel? CounterRender { get; set; }
     public TableVisualizationConfig? TableConfig { get; set; }
     public QueryResultViewModel Result { get; set; } = new();
 }

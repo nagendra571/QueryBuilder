@@ -1,11 +1,4 @@
 @model QueryBuilder.Web.Models.Visualizations.VisualizationEditViewModel
-@using System.Text.Json
-
-@{
-    var dataJson = JsonSerializer.Serialize(Model.Result?.Rows ?? Array.Empty<IReadOnlyList<string?>>());
-    var columnsJson = JsonSerializer.Serialize(Model.Result?.Columns ?? Array.Empty<string>());
-}
-
 @if (Model.Type != QueryBuilder.Domain.Entities.VisualizationType.Table)
 {
     <div class="card">
@@ -13,25 +6,4 @@
             <canvas id="vizPreview" height="120"></canvas>
         </div>
     </div>
-
-    <script>
-        window.queryBuilderViz = window.queryBuilderViz || {};
-        window.queryBuilderViz.preview = {
-            type: "@Model.Type",
-            columns: @Html.Raw(columnsJson),
-            rows: @Html.Raw(dataJson),
-            xColumn: "@(Model.XColumn ?? string.Empty)",
-            yColumn: "@(Model.YColumn ?? string.Empty)",
-            yColumns: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.YColumns)),
-            useHorizontalBars: @Model.UseHorizontalBars.ToString().ToLowerInvariant(),
-            useStackedBars: @Model.UseStackedBars.ToString().ToLowerInvariant(),
-            useFloatingBars: @Model.UseFloatingBars.ToString().ToLowerInvariant(),
-            rangeStartColumn: "@(Model.RangeStartColumn ?? string.Empty)",
-            rangeEndColumn: "@(Model.RangeEndColumn ?? string.Empty)",
-            labelColumn: "@(Model.LabelColumn ?? string.Empty)",
-            valueColumn: "@(Model.ValueColumn ?? string.Empty)",
-            showLegend: @Model.ShowLegend.ToString().ToLowerInvariant(),
-            lineInterpolationMode: "@(Model.LineInterpolationMode ?? "default")"
-        };
-    </script>
 }
